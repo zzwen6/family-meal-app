@@ -11,7 +11,9 @@
     { "path": "pages/gathering/list", "style": { "navigationBarTitleText": "我的聚餐", "enablePullDownRefresh": true } },
     { "path": "pages/gathering/edit", "style": { "navigationBarTitleText": "发起聚餐" } },
     { "path": "pages/gathering/detail", "style": { "navigationBarTitleText": "聚餐", "enablePullDownRefresh": true } },
-    { "path": "pages/gathering/join", "style": { "navigationBarTitleText": "聚餐邀请" } }
+    { "path": "pages/gathering/join", "style": { "navigationBarTitleText": "聚餐邀请" } },
+    { "path": "pages/rotation/index", "style": { "navigationBarTitleText": "掌厨安排", "enablePullDownRefresh": true } },
+    { "path": "pages/inventory/index", "style": { "navigationBarTitleText": "库存和剩菜", "enablePullDownRefresh": true } }
   ],
   "tabBar": {
     "color": "#8a8a8a",

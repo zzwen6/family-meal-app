@@ -30,6 +30,7 @@
             <view class="flex1">
               <view class="name">{{ it.name }}</view>
               <view v-if="it.sourceDishes" class="muted">{{ it.sourceDishes }}</view>
+              <view v-if="it.note" class="muted note">{{ it.note }}</view>
             </view>
             <text class="amount">{{ amountLabel(it.amount, it.unit) }}</text>
             <text v-if="canCook" class="op" @click.stop="setToBuy(it, false)">不买</text>
@@ -43,11 +44,12 @@
         </view>
 
         <view v-if="list.stapleItems.length" class="card">
-          <view class="card-title"><text>家里常备（默认不买）</text></view>
+          <view class="card-title"><text>不必买（常备 / 家里已有）（默认不买）</text></view>
           <view v-for="it in list.stapleItems" :key="it.id" class="item staple">
             <view class="flex1">
               <view class="name">{{ it.name }}</view>
               <view v-if="it.sourceDishes" class="muted">{{ it.sourceDishes }}</view>
+              <view v-if="it.note" class="muted note">{{ it.note }}</view>
             </view>
             <text class="amount">{{ amountLabel(it.amount, it.unit) }}</text>
             <text v-if="canCook" class="op add-back" @click="setToBuy(it, true)">要买</text>
@@ -156,6 +158,7 @@ onPullDownRefresh(load)
 .checkbox.on { background: $fm-primary; border-color: $fm-primary; }
 .flex1 { flex: 1; min-width: 0; }
 .name { font-size: 30rpx; }
+.note { color: #b4610f; }
 .amount { font-size: 28rpx; color: #555; }
 .op { font-size: 22rpx; color: #aaa; padding-left: 8rpx; }
 .add-back { color: $fm-primary; }

@@ -37,6 +37,7 @@
           maxlength="64"
           @input="onFreeText"
         />
+        <view v-if="freeTextFatigue" class="warn" style="margin-top: 12rpx">{{ freeTextFatigue }}</view>
         <view class="row wrap cats">
           <text class="chip small" :class="{ active: !category }" @click="category = ''">全部</text>
           <text v-for="c in categories" :key="c" class="chip small" :class="{ active: category === c }" @click="category = c">{{ c }}</text>
@@ -54,6 +55,7 @@
           <view class="flex1">
             <view class="name">{{ d.name }}</view>
             <view class="muted">{{ d.category }} · {{ d.durationMinutes }} 分钟</view>
+            <view v-if="fatigueOf(d.id, d.name)" class="warn">{{ fatigueOf(d.id, d.name) }}</view>
           </view>
           <text v-if="form.dishId === d.id" class="check">✓</text>
         </view>
@@ -90,8 +92,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { dishApi, familyApi, wishApi } from '@/api'
-import type { DishSummary, Intensity, MemberView, WishRequest } from '@/api/types'
+import { dishApi, familyApi, menuApi, wishApi } from '@/api'
+import type { DishSummary, HintView, Intensity, MemberView, WishRequest } from '@/api/types'
 import { canCook, currentFamily, ensureSession, session } from '@/store/session'
 import { addDays, dateLabel, INTENSITY_LABELS, MEAL_LABELS, today } from '@/utils/format'
 import SlotPicker from '@/components/SlotPicker.vue'
@@ -102,6 +104,7 @@ const members = ref<MemberView[]>([])
 const category = ref('')
 const editingId = ref<number | null>(null)
 const saving = ref(false)
+const hints = ref<HintView[]>([])
 const myMemberId = computed(() => currentFamily.value?.myMemberId)
 
 const form = reactive({
@@ -118,6 +121,14 @@ const form = reactive({
 
 const categories = computed(() => [...new Set(dishes.value.map((d) => d.category))])
 const filteredDishes = computed(() => dishes.value.filter((d) => !category.value || d.category === category.value))
+const freeTextFatigue = computed(() => (form.freeText && !form.dishId ? fatigueOf(undefined, form.freeText) : ''))
+
+function fatigueOf(dishId?: number, name?: string) {
+  const h = hints.value.find((x) => x.type === 'FATIGUE' && (
+    (dishId && x.dishId === dishId) || (name && x.dishName && name.replace(/\s/g, '') && x.dishName.includes(name.trim()))
+  ))
+  return h?.message || ''
+}
 
 function pickDish(id: number) {
   form.dishId = form.dishId === id ? null : id
@@ -130,7 +141,10 @@ function onFreeText() {
 onLoad(async (q) => {
   if (!(await ensureSession())) return
   const fid = currentFamily.value!.id
-  const [list, mem] = await Promise.all([dishApi.list(fid), canCook.value ? familyApi.members(fid) : Promise.resolve([])])
+  const [list, mem] = await Promise.all([
+    dishApi.list(fid),
+    canCook.value ? familyApi.members(fid) : Promise.resolve([]),
+  ])
   dishes.value = list
   members.value = mem
   if (q?.dishId) form.dishId = Number(q.dishId)
@@ -155,6 +169,7 @@ onLoad(async (q) => {
       })
     }
   }
+  hints.value = await menuApi.hints(fid, form.mealDate, form.mealType).catch(() => [])
 })
 
 async function submit() {
@@ -208,6 +223,7 @@ function remove() {
 .ph { background: $fm-primary-light; color: $fm-primary; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 36rpx; }
 .flex1 { flex: 1; }
 .name { font-size: 30rpx; }
+.warn { color: #b4610f; font-size: 22rpx; margin-top: 6rpx; }
 .check { color: $fm-primary; font-size: 36rpx; font-weight: 700; }
 .servings { margin-top: 28rpx; }
 .stepper { background: #f3f0ec; border-radius: 999rpx; }

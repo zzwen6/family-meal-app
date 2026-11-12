@@ -1,9 +1,10 @@
 import { request } from './request'
 import type {
-  BoardView, ConfirmItem, DishDetail, DishSummary, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
+  AssignmentView, BoardView, ConfirmItem, DishDetail, DishSummary, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
   GatheringDetail, GatheringForm, GatheringNotificationView, GatheringShoppingItemRequest, GatheringShoppingView,
-  GatheringSummary, InvitePreview, LoginResponse, MealType, MeResponse, MemberView, MenuView, NotificationView, Rsvp,
-  ShoppingItemView, ShoppingListView, SubscribeConfig, UserView, WishRequest, WishView,
+  GatheringSummary, HintView, InventoryView, InvitePreview, LeftoverView, LoginResponse, MealType, MeResponse,
+  MemberView, MenuView, NotificationView, RotationView, Rsvp, ShoppingItemView, ShoppingListView, SubscribeConfig,
+  UserView, WishRequest, WishView,
 } from './types'
 
 const fam = (fid: number) => `/api/families/${fid}`
@@ -30,6 +31,8 @@ export const familyApi = {
   updateMember: (fid: number, mid: number, body: Partial<Pick<MemberView, 'displayName' | 'dietaryNotes' | 'allergies' | 'role'>>) =>
     request<MemberView>('PUT', `${fam(fid)}/members/${mid}`, body),
   notifications: (fid: number, limit = 10) => request<NotificationView[]>('GET', `${fam(fid)}/notifications?limit=${limit}`),
+  update: (fid: number, body: Partial<Pick<FamilyView, 'name' | 'breakfastDeadline' | 'lunchDeadline' | 'dinnerDeadline' | 'fatigueWindowDays' | 'fatigueThreshold'>>) =>
+    request<FamilyView>('PUT', fam(fid), body),
 }
 
 export const dishApi = {
@@ -52,8 +55,12 @@ export const wishApi = {
 export const menuApi = {
   board: (fid: number, date: string, mealType: MealType) =>
     request<BoardView>('GET', `${fam(fid)}/menus/board?${qs({ date, mealType })}`),
-  confirm: (fid: number, body: { mealDate: string; mealType: MealType; items: ConfirmItem[]; note?: string }) =>
-    request<{ menu: MenuView; shoppingList: ShoppingListView }>('POST', `${fam(fid)}/menus/confirm`, body),
+  confirm: (fid: number, body: { mealDate: string; mealType: MealType; items: ConfirmItem[]; note?: string; useLeftoverIds?: number[] }) =>
+    request<{ menu: MenuView; shoppingList: ShoppingListView; hints: HintView[] }>('POST', `${fam(fid)}/menus/confirm`, body),
+  confirmPreview: (fid: number, body: { mealDate: string; mealType: MealType; items: ConfirmItem[]; note?: string; useLeftoverIds?: number[] }) =>
+    request<{ hints: HintView[] }>('POST', `${fam(fid)}/menus/confirm-preview`, body),
+  hints: (fid: number, date: string, mealType: MealType, params: { dishId?: number; name?: string } = {}) =>
+    request<HintView[]>('GET', `${fam(fid)}/hints?${qs({ date, mealType, ...params })}`),
   lock: (fid: number, menuId: number) => request<MenuView>('POST', `${fam(fid)}/menus/${menuId}/lock`),
   reopen: (fid: number, mealDate: string, mealType: MealType) =>
     request<MenuView>('POST', `${fam(fid)}/menus/reopen`, { mealDate, mealType }),
@@ -114,6 +121,39 @@ export const gatheringApi = {
   /** 家庭日历占位：这个家庭在某段日期里有哪些临时聚餐（只有标题和发起人） */
   familySlots: (fid: number, from: string, to: string) =>
     request<FamilyGatheringSlot[]>('GET', `${fam(fid)}/gatherings?${qs({ from, to })}`, undefined, { silent: true }),
+}
+
+export const rotationApi = {
+  get: (fid: number) => request<RotationView>('GET', `${fam(fid)}/cook-rotation`),
+  update: (fid: number, body: { enabled?: boolean; mealTypes?: MealType[]; memberIds?: number[] }) =>
+    request<RotationView>('PUT', `${fam(fid)}/cook-rotation`, body),
+  assignments: (fid: number, from: string, to: string) =>
+    request<AssignmentView[]>('GET', `${fam(fid)}/cook-assignments?${qs({ from, to })}`),
+  assign: (fid: number, body: { mealDate: string; mealType: MealType; memberId?: number | null }) =>
+    request<AssignmentView>('PUT', `${fam(fid)}/cook-assignments`, body),
+  generate: (fid: number, body: { from?: string; to?: string; days?: number } = {}) =>
+    request<AssignmentView[]>('POST', `${fam(fid)}/cook-assignments/generate`, body),
+  swap: (fid: number, body: { date1: string; mealType1: MealType; date2: string; mealType2: MealType }) =>
+    request<AssignmentView[]>('POST', `${fam(fid)}/cook-assignments/swap`, body),
+}
+
+export const inventoryApi = {
+  list: (fid: number) => request<InventoryView[]>('GET', `${fam(fid)}/inventory`),
+  create: (fid: number, body: { name: string; amount?: number | null; unit?: string; staple?: boolean; note?: string }) =>
+    request<InventoryView>('POST', `${fam(fid)}/inventory`, body),
+  update: (fid: number, id: number, body: { name: string; amount?: number | null; unit?: string; staple?: boolean; note?: string }) =>
+    request<InventoryView>('PUT', `${fam(fid)}/inventory/${id}`, body),
+  remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/inventory/${id}`),
+}
+
+export const leftoverApi = {
+  list: (fid: number, used?: boolean) => request<LeftoverView[]>('GET', `${fam(fid)}/leftovers?${qs({ used })}`),
+  create: (fid: number, body: { menuId?: number | null; name: string; amount?: number | null; unit?: string; expiresOn?: string | null; note?: string }) =>
+    request<LeftoverView>('POST', `${fam(fid)}/leftovers`, body),
+  update: (fid: number, id: number, body: { menuId?: number | null; name: string; amount?: number | null; unit?: string; expiresOn?: string | null; note?: string }) =>
+    request<LeftoverView>('PUT', `${fam(fid)}/leftovers/${id}`, body),
+  use: (fid: number, id: number, menuId?: number) => request<LeftoverView>('POST', `${fam(fid)}/leftovers/${id}/use`, { menuId }),
+  remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/leftovers/${id}`),
 }
 
 export const wechatApi = {

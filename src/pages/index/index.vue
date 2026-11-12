@@ -27,9 +27,10 @@
             <view class="muted">
               <text v-if="status === 'OPEN'">{{ countdown }}截止（{{ deadlineLabel(board.deadline) }}）</text>
               <text v-else-if="status === 'LOCKED'">点餐已截止，等掌厨定菜单</text>
-              <text v-else-if="status === 'CONFIRMED'">菜单已定 · {{ board.menu?.confirmedByName || '掌厨' }}</text>
+              <text v-else-if="status === 'CONFIRMED'">菜单已定 · {{ board.menu?.confirmedByName || '掌厨' }}<text v-if="board.proxyConfirm">（代做）</text></text>
               <text v-else>开饭啦，快去吃！</text>
             </view>
+            <view v-if="board.assignedCook" class="muted cook-line">今晚掌厨：{{ board.assignedCook.displayName }}</view>
           </view>
           <text class="tag" :class="statusClass">{{ STATUS_LABELS[status] }}</text>
         </view>
@@ -40,11 +41,25 @@
         </view>
         <view class="row gap actions">
           <button class="btn" :disabled="!board.canEditWish" @click="goWish()">我想吃…</button>
-          <button v-if="canCook" class="btn ghost" @click="goCook">掌厨工作台</button>
+          <button v-if="board.canRunKitchen" class="btn ghost" @click="goCook">掌厨工作台</button>
         </view>
         <!-- #ifdef MP-WEIXIN -->
         <view v-if="status !== 'READY'" class="remind link" @click="remind">🔔 提醒我开饭（微信消息）</view>
         <!-- #endif -->
+      </view>
+
+      <view v-if="board?.hints?.length" class="card hints">
+        <view class="card-title">温馨提示</view>
+        <view v-for="h in board.hints" :key="h.type + (h.dishName || '') + (h.memberId || '') + (h.leftoverId || '')" class="hint" :class="hintClass(h.type)">
+          {{ h.message }}
+        </view>
+      </view>
+
+      <view v-if="unusedLeftovers.length" class="card">
+        <view class="card-title">有剩菜可以先吃掉</view>
+        <view v-for="l in unusedLeftovers" :key="l.id" class="muted leftover-line">
+          {{ l.name }}<text v-if="l.amount"> {{ l.amount }}{{ l.unit || '' }}</text><text v-if="l.expiresOn"> · 大约保鲜到 {{ l.expiresOn }}</text>
+        </view>
       </view>
 
       <view v-if="board?.menu?.items?.length" class="card">
@@ -120,7 +135,8 @@ import { computed, ref } from 'vue'
 import { onHide, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { familyApi, gatheringApi, menuApi } from '@/api'
 import type { BoardView, FamilyGatheringSlot, Intensity, MenuStatus, NotificationView } from '@/api/types'
-import { canCook, currentFamily, ensureSession, session } from '@/store/session'
+import { currentFamily, ensureSession, session } from '@/store/session'
+import type { HintType } from '@/api/types'
 import { dateLabel, deadlineLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
 import { requestDinnerReminder } from '@/utils/subscribe'
 import SlotPicker from '@/components/SlotPicker.vue'
@@ -137,6 +153,11 @@ const status = computed<MenuStatus>(() => board.value?.menu?.status || (board.va
 const statusClass = computed(() => ({ OPEN: 'primary', LOCKED: 'warn', CONFIRMED: 'success', READY: 'success' })[status.value])
 const myWishes = computed(() => board.value?.wishes.filter((w) => w.memberId === currentFamily.value?.myMemberId) || [])
 const submittedCount = computed(() => board.value?.members.filter((m) => m.submitted).length || 0)
+const unusedLeftovers = computed(() => (board.value?.leftovers || []).filter((l) => !l.used))
+
+function hintClass(t: HintType) {
+  return { AVOID: 'danger', FATIGUE: 'warn', FAIRNESS: '', LEFTOVER: '' }[t]
+}
 const greeting = computed(() => {
   const h = new Date().getHours()
   const name = board.value?.members.find((m) => m.memberId === currentFamily.value?.myMemberId)?.displayName || session.user?.nickname || ''
@@ -204,6 +225,12 @@ onPullDownRefresh(load)
 </script>
 
 <style lang="scss" scoped>
+.cook-line { margin-top: 8rpx; }
+.hint { padding: 12rpx 0; font-size: 26rpx; line-height: 1.5; border-bottom: 1rpx solid #f2f2f2; }
+.hint:last-child { border-bottom: none; }
+.hint.danger { color: #c0392b; }
+.hint.warn { color: #b4610f; }
+.leftover-line { padding: 8rpx 0; }
 .hello { margin: 8rpx 4rpx 24rpx; }
 .family { font-size: 40rpx; font-weight: 700; }
 .big { font-size: 36rpx; font-weight: 600; margin-bottom: 6rpx; }

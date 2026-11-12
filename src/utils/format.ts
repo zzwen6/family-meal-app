@@ -1,4 +1,4 @@
-import type { Difficulty, GatheringMode, GatheringStatus, Intensity, MealType, MenuStatus, Role, Rsvp } from '@/api/types'
+import type { Difficulty, GatheringMode, GatheringStatus, HintType, Intensity, MealType, MenuStatus, Role, Rsvp } from '@/api/types'
 
 export const MEAL_LABELS: Record<MealType, string> = { BREAKFAST: '早餐', LUNCH: '午餐', DINNER: '晚餐' }
 export const MEAL_TYPES: MealType[] = ['BREAKFAST', 'LUNCH', 'DINNER']
@@ -71,4 +71,11 @@ export function defaultMeal(): MealType {
   if (h < 9) return 'BREAKFAST'
   if (h < 13) return 'LUNCH'
   return 'DINNER'
+}
+
+export const HINT_TYPE_LABELS: Record<HintType, string> = {
+  FATIGUE: '可能吃腻',
+  FAIRNESS: '心愿公平',
+  AVOID: '忌口',
+  LEFTOVER: '剩菜',
 }

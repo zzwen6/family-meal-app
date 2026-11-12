@@ -28,6 +28,8 @@ export interface FamilyView {
   breakfastDeadline: string
   lunchDeadline: string
   dinnerDeadline: string
+  fatigueWindowDays: number
+  fatigueThreshold: number
   myMemberId: number
   myRole: Role
   memberCount: number
@@ -141,6 +143,10 @@ export interface MenuView {
   readyAt?: string
   items: MenuItemView[]
   wishCount: number
+  assignedMemberId?: number
+  assignedMemberName?: string
+  assignedSource?: 'AUTO' | 'MANUAL'
+  proxyConfirm?: boolean
 }
 
 export interface MemberStatus {
@@ -164,17 +170,67 @@ export interface DishVote {
   avoidBy: string[]
 }
 
+export type HintType = 'FATIGUE' | 'FAIRNESS' | 'AVOID' | 'LEFTOVER'
+
+export interface HintView {
+  type: HintType
+  dishId?: number
+  dishName?: string
+  memberId?: number
+  memberName?: string
+  message: string
+  count?: number
+  total?: number
+  ratio?: number
+  leftoverId?: number
+  expiresOn?: string
+}
+
+export interface CookBrief {
+  memberId: number
+  displayName: string
+  source: 'AUTO' | 'MANUAL'
+}
+
+export interface LeftoverView {
+  id: number
+  menuId?: number
+  name: string
+  amount?: number
+  unit?: string
+  expiresOn?: string
+  used: boolean
+  usedAt?: string
+  usedMenuId?: number
+  note?: string
+}
+
+export interface InventoryView {
+  id: number
+  name: string
+  amount?: number
+  unit?: string
+  staple: boolean
+  note?: string
+}
+
 export interface BoardView {
   mealDate: string
   mealType: MealType
   menu?: MenuView
   canEditWish: boolean
   canCook: boolean
+  canRunKitchen: boolean
+  canManageAssignment: boolean
   deadline: string
   headcount: number
   members: MemberStatus[]
   votes: DishVote[]
   wishes: WishView[]
+  assignedCook?: CookBrief
+  proxyConfirm: boolean
+  hints: HintView[]
+  leftovers: LeftoverView[]
 }
 
 export interface ConfirmItem {
@@ -196,6 +252,7 @@ export interface ShoppingItemView {
   toBuy: boolean
   purchased: boolean
   sourceDishes?: string
+  note?: string
 }
 
 export interface ShoppingListView {
@@ -414,4 +471,29 @@ export interface GatheringNotificationView {
 export interface SubscribeConfig {
   enabled: boolean
   dinnerReadyTemplateId?: string
+}
+
+// ---------------- 掌厨轮换、库存 ----------------
+
+export interface RotationMemberView {
+  memberId: number
+  displayName: string
+  sortOrder: number
+}
+
+export interface RotationView {
+  enabled: boolean
+  mealTypes: MealType[]
+  members: RotationMemberView[]
+}
+
+export interface AssignmentView {
+  mealDate: string
+  mealType: MealType
+  memberId?: number
+  memberName?: string
+  source?: 'AUTO' | 'MANUAL'
+  confirmedByMemberId?: number
+  confirmedByName?: string
+  proxyConfirm: boolean
 }

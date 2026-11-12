@@ -11,6 +11,15 @@
       </view>
     </view>
 
+    <view v-if="currentFamily" class="card">
+      <view class="card-title">家庭日常</view>
+      <view class="muted">掌厨轮换、本周谁做饭，以及家里的库存和剩菜。</view>
+      <view class="row gap gathering-actions">
+        <button class="btn ghost small flex1" @click="goRotation">掌厨安排</button>
+        <button class="btn ghost small flex1" @click="goInventory">库存和剩菜</button>
+      </view>
+    </view>
+
     <view class="card">
       <view class="card-title">临时聚餐</view>
       <view class="muted">约朋友、亲戚来吃饭，发邀请让大家应邀点菜；和家里的点餐分开，客人看不到家里的数据。</view>
@@ -153,6 +162,12 @@ async function create() {
   load()
 }
 
+function goRotation() {
+  uni.navigateTo({ url: '/pages/rotation/index' })
+}
+function goInventory() {
+  uni.navigateTo({ url: '/pages/inventory/index' })
+}
 function goGatherings() {
   uni.navigateTo({ url: '/pages/gathering/list' })
 }
