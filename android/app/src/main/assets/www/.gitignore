@@ -1,0 +1,3 @@
+# 由 Gradle 任务 copyH5Assets 从 ../../../../../../../dist/build/h5 同步，不要提交
+*
+!.gitignore

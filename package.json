@@ -6,7 +6,8 @@
     "build:h5": "uni build",
     "dev:mp-weixin": "uni -p mp-weixin",
     "build:mp-weixin": "uni build -p mp-weixin",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "build:apk": "bash android/build-apk.sh"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-5030420261029002",
@@ -29,5 +30,5 @@
     "vue-tsc": "^1.0.24"
   },
   "private": true,
-  "description": "家庭点餐：微信小程序 + H5（uni-app Vue3 + TypeScript）"
+  "description": "家庭点餐：微信小程序 + H5 + Android（uni-app Vue3 + TypeScript，Android 为 WebView 壳）"
 }

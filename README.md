@@ -1,6 +1,6 @@
-# family-meal-app · 家庭点餐（微信小程序 + H5）
+# family-meal-app · 家庭点餐（微信小程序 + H5 + Android）
 
-家人提前说「今晚想吃什么」，掌厨统一定菜单、自动出采购清单；约朋友来吃饭时发起「临时聚餐」，发卡片邀请、大家应邀点菜。一个代码库同时出 **微信小程序** 和 **H5**（uni-app · Vue 3 · TypeScript）。
+家人提前说「今晚想吃什么」，掌厨统一定菜单、自动出采购清单；约朋友来吃饭时发起「临时聚餐」，发卡片邀请、大家应邀点菜。一个代码库同时出 **微信小程序**、**H5** 和可侧载安装的 **Android APK**（uni-app · Vue 3 · TypeScript；APK 用系统 WebView 加载同套 H5）。
 
 后端与管理后台在 [zzwen6/family-meal-api](https://github.com/zzwen6/family-meal-api)。
 
@@ -92,6 +92,68 @@ npm run build:mp-weixin
 
 > **小程序上传不能在 CI 里自动完成。** 本仓库没有 GitHub Actions 构建 / 发布流程：上传需要小程序代码上传密钥和 IP 白名单（miniprogram-ci），目前按约定在本机用开发者工具手动上传。H5 构建产物也请手动部署（例如放到 NAS 的 nginx）。
 
+## Android 应用（APK）
+
+没有走 HBuilderX / DCloud 云打包，而是：先用现有 `build:h5` 打出 H5，再由 `android/` 里的原生 WebView 壳加载。登录沿用 H5 的账号密码，没有微信 App 登录。「提醒我开饭」是小程序订阅消息，App 里和 H5 一样没有这项。
+
+WebView 不能直接打开 `file://` 去请求 HTTPS 接口（会被 CORS / 浏览器安全策略拦住），所以 App 会在本机 **只监听 127.0.0.1** 起一个小 HTTP 服务（NanoHTTPD）：一边提供打包进来的 H5 静态文件，一边把 `/api`（含菜谱图片和视频）反代到上游 HTTPS。H5 构建时 **`VITE_API_BASE` 必须留空**，请求走同源。默认上游是 `https://meal.six666.qzz.io`，可在打包时用 `-PapiUpstream=https://你的域名` 覆盖。明文 HTTP 仅允许 127.0.0.1，上游仍是 HTTPS。
+
+后端前面的 nginx 需要把 `/api/`、`/admin/`、`/actuator/` 反代到本机 Spring Boot（默认容器映射 `http://127.0.0.1:8090`），并设置足够的 `client_max_body_size`（视频上限 30MB，建议 32m）。示例见 [family-meal-api docs/DEPLOY.md](https://github.com/zzwen6/family-meal-api/blob/main/docs/DEPLOY.md)。如果打开域名根路径还是 nginx 欢迎页、访问 `/api` 是 404，说明还没配好反代，App 能装能开，但登录和数据会失败。
+
+### 在手机上安装
+
+1. 把 `dist-android/家庭点餐.apk` 发到手机（网盘、USB、浏览器下载均可）。
+2. 打开 APK 前，允许当前来源安装未知应用（设置里搜「安装未知应用」或「未知来源」）。
+3. 包名是 `com.zzwen6.familymeal`。以后升级必须用**同一份签名证书**打的新包才能覆盖安装。
+
+需要 Android 7.0（API 24）及以上。
+
+### 本地打 APK
+
+需要 JDK 17+、Android SDK（`platforms;android-34` 和对应 build-tools）、Node 18+。本仓库不包含 SDK、keystore 和 APK。
+
+```bash
+# 如有需要：安装 commandlinetools 后
+# sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+export JAVA_HOME=/path/to/jdk
+export ANDROID_HOME=/path/to/Android/Sdk
+
+# 首次：生成发布证书（只做一次，请备份，不要提交到 Git）
+mkdir -p dist-android
+# 把下面的密码换成你自己的强随机密码，store 和 key 请保持一致
+keytool -genkeypair -v \
+  -keystore dist-android/family-meal-release.jks \
+  -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10950 \
+  -alias familymeal \
+  -storepass '你的密码' -keypass '你的密码' \
+  -dname "CN=Family Meal, OU=zzwen6, O=zzwen6, C=CN"
+
+cat > dist-android/keystore.properties << EOF
+storeFile=family-meal-release.jks
+storePassword=你的密码
+keyAlias=familymeal
+keyPassword=你的密码
+EOF
+# 建议同时把证书位置、alias、密码和「升级必须用同一证书」写进
+# dist-android/keystore-info.txt，和 jks 一起放到安全的地方。
+
+# 构建（会先跑 npm run build:h5，VITE_API_BASE 置空，再 assembleRelease）
+npm run build:apk
+# 产物：dist-android/家庭点餐.apk
+```
+
+也可以在 `android/` 目录直接执行 `./gradlew :app:assembleRelease`（同样会先构建 H5）。若 H5 已经打好、只想重签或重编壳，可加 `-PskipH5`。
+
+`dist-android/`、`*.jks`、`*.keystore`、`android/keystore.properties`、`android/local.properties` 和 APK 都已写入 `.gitignore`，不要强制加进版本库。
+
+### 换签名证书 / 以后升级
+
+- **覆盖安装、应用商店更新**：必须使用生成第一份 APK 时的同一 keystore 和同一 alias。丢掉证书等于无法升级，只能让用户卸载重装（本地数据会清空）。
+- 换一台机器构建：把 `family-meal-release.jks` 和 `keystore.properties`（或环境变量 `FAMILY_MEAL_STORE_FILE` / `FAMILY_MEAL_STORE_PASSWORD` / `FAMILY_MEAL_KEY_ALIAS` / `FAMILY_MEAL_KEY_PASSWORD`）放到同样约定的位置即可。
+- 只有在确定要放弃旧包、让用户重新安装时，才生成一份新证书。
+
+
 ## 目录
 
 ```
@@ -102,6 +164,7 @@ src/
   pages/       页面（见上表）
   utils/       日期、文案、用量格式化；media.ts 给图片/视频补登录参数，subscribe.ts 订阅消息授权，invite.ts 邀请链接 / 分享路径
   config.ts    API 地址（VITE_API_BASE）
+android/      原生 WebView 壳（本地代理 + 签名打包，不改业务逻辑）
 ```
 
 吃腻默认看最近 14 天、同一道菜出现 2 次会提示（家庭规则里可改）。采购清单会按名称对照库存和未用完剩菜，少买家里已有的；生成清单时仍然只计算建议购买量、不改库存数字。勾选已买会把购买量加进库存，取消则撤回；用掉能对上库存食材的剩菜会扣库存；开饭时扣除生成时算作「家里已有」的那部分。菜谱营养是按用料估算的近似值，不是检测结果。规则详见 [family-meal-api README](https://github.com/zzwen6/family-meal-api#吃腻公平与库存对照规则)。
@@ -112,6 +175,7 @@ src/
 - 小程序里「复制邀请链接」复制的是小程序页面路径，发给微信好友请用分享卡片；H5 复制的是可直接打开的网址。
 - 营养数字是估算，找不到的食材、不能换算的单位和手写菜会跳过，不要当成检测报告。
 - 小程序要能上传和播放菜谱媒体，除了 request 合法域名，还需要配置同一 API 域名的 uploadFile / downloadFile 合法域名。
+- Android App 没有微信登录和「提醒我开饭」订阅消息，请用账号密码登录；后台接口必须经 nginx 把 `/api/` 反代出去，否则 App 里会提示请求失败。
 
 ## License
 

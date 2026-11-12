@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fm_primary">#E6772E</color>
+    <color name="fm_nav">#FFF8F1</color>
+    <color name="fm_bg">#F6F4F1</color>
+    <color name="fm_text">#2B2B2B</color>
+    <color name="ic_launcher_background">#FFF8F1</color>
+</resources>
