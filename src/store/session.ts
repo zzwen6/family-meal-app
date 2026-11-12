@@ -121,11 +121,22 @@ export function bootstrap(): Promise<void> {
   return booting
 }
 
-/** 页面里调用：确保已登录且有家庭。返回 false 时已经跳转。 */
-export async function ensureSession(opts: { needFamily?: boolean } = { needFamily: true }): Promise<boolean> {
+/** 登录页的回跳地址：只允许站内页面，避免被拼成任意跳转。 */
+export function safeRedirect(url?: string | null): string | null {
+  if (!url) return null
+  const u = decodeURIComponent(url)
+  return /^\/pages\/[\w/-]+(\?.*)?$/.test(u) ? u : null
+}
+
+/**
+ * 页面里调用：确保已登录且有家庭。返回 false 时已经跳转。
+ * redirect：没登录时带到登录页，登录后回到这里（比如聚餐邀请页）。
+ */
+export async function ensureSession(opts: { needFamily?: boolean; redirect?: string } = { needFamily: true }): Promise<boolean> {
   await bootstrap()
   if (!session.token) {
-    uni.reLaunch({ url: '/pages/login/index' })
+    const r = safeRedirect(opts.redirect)
+    uni.reLaunch({ url: r ? `/pages/login/index?redirect=${encodeURIComponent(r)}` : '/pages/login/index' })
     return false
   }
   if (opts.needFamily !== false && !currentFamily.value) {

@@ -1,7 +1,9 @@
 import { request } from './request'
 import type {
-  BoardView, ConfirmItem, DishDetail, DishSummary, FamilyView, LoginResponse, MealType, MeResponse, MemberView,
-  MenuView, NotificationView, ShoppingItemView, ShoppingListView, UserView, WishRequest, WishView,
+  BoardView, ConfirmItem, DishDetail, DishSummary, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
+  GatheringDetail, GatheringForm, GatheringNotificationView, GatheringShoppingItemRequest, GatheringShoppingView,
+  GatheringSummary, InvitePreview, LoginResponse, MealType, MeResponse, MemberView, MenuView, NotificationView, Rsvp,
+  ShoppingItemView, ShoppingListView, SubscribeConfig, UserView, WishRequest, WishView,
 } from './types'
 
 const fam = (fid: number) => `/api/families/${fid}`
@@ -68,4 +70,52 @@ export const shoppingApi = {
   update: (fid: number, itemId: number, body: { toBuy?: boolean; purchased?: boolean }) =>
     request<ShoppingItemView>('PATCH', `${fam(fid)}/shopping-items/${itemId}`, body),
   remove: (fid: number, itemId: number) => request<null>('DELETE', `${fam(fid)}/shopping-items/${itemId}`),
+}
+
+/** 临时聚餐：独立于家庭，接口都在 /api/gatherings 下；只有发起人和本场参与者能看详情。 */
+const gat = (id: number) => `/api/gatherings/${id}`
+
+export const gatheringApi = {
+  mine: () => request<GatheringSummary[]>('GET', '/api/gatherings'),
+  create: (body: GatheringForm) => request<GatheringDetail>('POST', '/api/gatherings', body),
+  get: (id: number, silent = false) => request<GatheringDetail>('GET', gat(id), undefined, { silent }),
+  update: (id: number, body: GatheringForm) => request<GatheringDetail>('PUT', gat(id), body),
+  copy: (id: number, body: GatheringForm) => request<GatheringDetail>('POST', `${gat(id)}/copy`, body),
+  preview: (token: string) =>
+    request<InvitePreview>('GET', `/api/gatherings/invite/${encodeURIComponent(token)}`, undefined, { silent: true }),
+  join: (token: string, body: { rsvp: Rsvp; headcount: number; dietaryNotes?: string; guestName?: string }) =>
+    request<GatheringDetail>('POST', `/api/gatherings/invite/${encodeURIComponent(token)}/join`, body),
+  rsvp: (id: number, body: { rsvp: Rsvp; headcount: number; dietaryNotes?: string; guestName?: string }) =>
+    request<GatheringDetail>('PUT', `${gat(id)}/me`, body),
+  addGuest: (id: number, body: { guestName: string; headcount?: number; rsvp?: Rsvp; dietaryNotes?: string }) =>
+    request<GatheringDetail>('POST', `${gat(id)}/participants`, body),
+  removeParticipant: (id: number, pid: number) => request<GatheringDetail>('DELETE', `${gat(id)}/participants/${pid}`),
+  addWish: (id: number, body: { dishName: string; note?: string }) => request<GatheringDetail>('POST', `${gat(id)}/wishes`, body),
+  updateWish: (id: number, wishId: number, body: { dishName: string; note?: string }) =>
+    request<GatheringDetail>('PUT', `${gat(id)}/wishes/${wishId}`, body),
+  deleteWish: (id: number, wishId: number) => request<GatheringDetail>('DELETE', `${gat(id)}/wishes/${wishId}`),
+  vote: (id: number, wishId: number) => request<GatheringDetail>('POST', `${gat(id)}/wishes/${wishId}/vote`),
+  unvote: (id: number, wishId: number) => request<GatheringDetail>('DELETE', `${gat(id)}/wishes/${wishId}/vote`),
+  confirm: (id: number, items: GatheringConfirmItem[]) => request<GatheringDetail>('POST', `${gat(id)}/confirm`, { items }),
+  reopen: (id: number, deadlineAt?: string | null) => request<GatheringDetail>('POST', `${gat(id)}/reopen`, { deadlineAt }),
+  ready: (id: number) => request<GatheringDetail>('POST', `${gat(id)}/ready`),
+  close: (id: number) => request<GatheringDetail>('POST', `${gat(id)}/close`),
+  notifications: (id: number, limit = 10) =>
+    request<GatheringNotificationView[]>('GET', `${gat(id)}/notifications?limit=${limit}`, undefined, { silent: true }),
+  shopping: (id: number) => request<GatheringShoppingView>('GET', `${gat(id)}/shopping`, undefined, { silent: true }),
+  addShoppingItem: (id: number, body: GatheringShoppingItemRequest) =>
+    request<GatheringShoppingView>('POST', `${gat(id)}/shopping/items`, body),
+  updateShoppingItem: (id: number, itemId: number, body: GatheringShoppingItemRequest) =>
+    request<GatheringShoppingView>('PUT', `${gat(id)}/shopping/items/${itemId}`, body),
+  markPurchased: (id: number, itemId: number, purchased: boolean) =>
+    request<GatheringShoppingView>('PATCH', `${gat(id)}/shopping/items/${itemId}`, { purchased }),
+  deleteShoppingItem: (id: number, itemId: number) =>
+    request<GatheringShoppingView>('DELETE', `${gat(id)}/shopping/items/${itemId}`),
+  /** 家庭日历占位：这个家庭在某段日期里有哪些临时聚餐（只有标题和发起人） */
+  familySlots: (fid: number, from: string, to: string) =>
+    request<FamilyGatheringSlot[]>('GET', `${fam(fid)}/gatherings?${qs({ from, to })}`, undefined, { silent: true }),
+}
+
+export const wechatApi = {
+  subscribeConfig: () => request<SubscribeConfig>('GET', '/api/wechat/subscribe-config', undefined, { silent: true }),
 }

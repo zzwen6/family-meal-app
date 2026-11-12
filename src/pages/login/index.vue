@@ -4,6 +4,7 @@
       <view class="logo">🍲</view>
       <view class="title">家庭点餐</view>
       <view class="muted">今晚想吃什么，提前说一声</view>
+      <view v-if="redirect" class="muted redirect-tip">登录后继续刚才的聚餐邀请</view>
     </view>
 
     <!-- #ifdef MP-WEIXIN -->
@@ -36,15 +37,22 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { authApi } from '@/api'
-import { onLoggedIn, wechatLogin } from '@/store/session'
+import { onLoggedIn, safeRedirect, wechatLogin } from '@/store/session'
 
 const mode = ref<'login' | 'register'>('login')
 const busy = ref(false)
 const form = reactive({ username: '', password: '', nickname: '', inviteCode: '' })
+/** 从邀请页等地方跳过来时，登录后回到原页面 */
+const redirect = ref<string | null>(null)
+
+onLoad((q) => {
+  redirect.value = safeRedirect((q as Record<string, string> | undefined)?.redirect)
+})
 
 function done() {
-  uni.reLaunch({ url: '/pages/index/index' })
+  uni.reLaunch({ url: redirect.value || '/pages/index/index' })
 }
 
 async function submit() {
@@ -93,4 +101,5 @@ async function wx() {
 .title { font-size: 48rpx; font-weight: 700; margin: 10rpx 0; }
 .form { margin-top: 32rpx; }
 .tip { margin-top: 20rpx; line-height: 1.6; }
+.redirect-tip { margin-top: 12rpx; color: $fm-primary; }
 </style>

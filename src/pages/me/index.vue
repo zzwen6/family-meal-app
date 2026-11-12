@@ -11,6 +11,15 @@
       </view>
     </view>
 
+    <view class="card">
+      <view class="card-title">临时聚餐</view>
+      <view class="muted">约朋友、亲戚来吃饭，发邀请让大家应邀点菜；和家里的点餐分开，客人看不到家里的数据。</view>
+      <view class="row gap gathering-actions">
+        <button class="btn ghost small flex1" @click="goGatherings">我的聚餐</button>
+        <button class="btn small flex1" @click="newGathering">发起聚餐</button>
+      </view>
+    </view>
+
     <view v-if="session.families.length" class="card">
       <view class="card-title">我的家庭</view>
       <view
@@ -144,6 +153,13 @@ async function create() {
   load()
 }
 
+function goGatherings() {
+  uni.navigateTo({ url: '/pages/gathering/list' })
+}
+function newGathering() {
+  uni.navigateTo({ url: '/pages/gathering/edit' })
+}
+
 function doLogout() {
   uni.showModal({
     title: '退出登录？',
@@ -173,4 +189,6 @@ onShow(load)
 .divider { height: 1rpx; background: #f2f2f2; margin: 28rpx 0; }
 .notice { padding: 14rpx 0; border-bottom: 1rpx solid #f2f2f2; }
 .btn.small { margin: 0; }
+.gathering-actions { margin-top: 20rpx; }
+.gathering-actions .btn { flex: 1; }
 </style>

@@ -213,9 +213,205 @@ export interface ShoppingListView {
 export interface NotificationView {
   id: number
   menuId?: number
+  gatheringId?: number
   type: 'MENU_CONFIRMED' | 'DINNER_READY'
   title: string
   content: string
   wechatStatus: string
   createdAt: string
+}
+
+// ---------------- 临时聚餐 ----------------
+
+/** HOST_COOK 主人掌厨 / VOTE 众筹投票 / POTLUCK 各带一道 */
+export type GatheringMode = 'HOST_COOK' | 'VOTE' | 'POTLUCK'
+/** OPEN 邀请中 / CONFIRMED 菜单已定 / CLOSED 已散场 */
+export type GatheringStatus = 'OPEN' | 'CONFIRMED' | 'CLOSED'
+export type Rsvp = 'YES' | 'NO' | 'MAYBE'
+
+export interface GatheringSummary {
+  id: number
+  title: string
+  mealDate: string
+  mealType: MealType
+  location?: string
+  mode: GatheringMode
+  status: GatheringStatus
+  hostName: string
+  host: boolean
+  myRsvp: Rsvp
+  headcount: number
+  participantCount: number
+  readyAt?: string
+}
+
+export interface InvitePreview {
+  title: string
+  mealDate: string
+  mealType: MealType
+  location?: string
+  mode: GatheringMode
+  status: GatheringStatus
+  hostName: string
+  deadlineAt?: string
+  joinable: boolean
+  joined: boolean
+  gatheringId?: number
+  reason?: string
+}
+
+export interface GatheringParticipantView {
+  id: number
+  name: string
+  rsvp: Rsvp
+  headcount: number
+  /** 只有发起人和本人能看到 */
+  dietaryNotes?: string
+  host: boolean
+  me: boolean
+  /** 主人代填、没有账号的客人 */
+  guest: boolean
+  joinedAt: string
+}
+
+export interface GatheringWishView {
+  id: number
+  participantId: number
+  participantName: string
+  dishName: string
+  note?: string
+  bringBySelf: boolean
+  votes: number
+  votedByMe: boolean
+  mine: boolean
+  editable: boolean
+  createdAt: string
+}
+
+export interface DishTally {
+  dishName: string
+  count: number
+  by: string[]
+}
+
+export interface GatheringMenuItemView {
+  id: number
+  dishName: string
+  servings: number
+  autoServings: boolean
+  wishId?: number
+  bringParticipantId?: number
+  bringByName?: string
+  note?: string
+}
+
+export interface GatheringDetail {
+  id: number
+  title: string
+  mealDate: string
+  mealType: MealType
+  location?: string
+  note?: string
+  mode: GatheringMode
+  status: GatheringStatus
+  hostName: string
+  host: boolean
+  /** 只有发起人自己能看到 */
+  hostFamilyId?: number
+  /** 散场后为空 */
+  inviteToken?: string
+  deadlineAt?: string
+  canEditWishes: boolean
+  headcount: number
+  confirmedHeadcount?: number
+  headcountChanged: boolean
+  yesCount: number
+  maybeCount: number
+  noCount: number
+  confirmedAt?: string
+  readyAt?: string
+  closedAt?: string
+  createdAt: string
+  sourceGatheringId?: number
+  me: GatheringParticipantView
+  participants: GatheringParticipantView[]
+  wishes: GatheringWishView[]
+  tally: DishTally[]
+  unclaimed: string[]
+  menu: GatheringMenuItemView[]
+}
+
+export interface GatheringForm {
+  title: string
+  mealDate: string
+  mealType: MealType
+  location?: string | null
+  mode?: GatheringMode
+  deadlineAt?: string | null
+  hostFamilyId?: number | null
+  note?: string | null
+  headcount?: number
+  dietaryNotes?: string | null
+}
+
+export interface GatheringConfirmItem {
+  wishId?: number | null
+  dishName?: string | null
+  servings?: number | null
+  bringParticipantId?: number | null
+  note?: string | null
+}
+
+export interface GatheringShoppingItemView {
+  id: number
+  name: string
+  amount?: number
+  unit?: string
+  baseServings?: number
+  scaledAmount?: number
+  forDish?: string
+  note?: string
+  purchased: boolean
+}
+
+export interface GatheringShoppingView {
+  gatheringId: number
+  headcount: number
+  items: GatheringShoppingItemView[]
+  total: number
+  purchasedCount: number
+}
+
+export interface GatheringShoppingItemRequest {
+  name: string
+  amount?: number | null
+  unit?: string | null
+  baseServings?: number | null
+  forDish?: string | null
+  note?: string | null
+}
+
+export interface FamilyGatheringSlot {
+  id: number
+  title: string
+  mealDate: string
+  mealType: MealType
+  status: GatheringStatus
+  hostName: string
+  joined: boolean
+}
+
+export interface GatheringNotificationView {
+  id: number
+  gatheringId?: number
+  type: 'GATHERING_CONFIRMED' | 'GATHERING_READY'
+  title: string
+  content: string
+  wechatStatus: string
+  createdAt: string
+}
+
+export interface SubscribeConfig {
+  enabled: boolean
+  dinnerReadyTemplateId?: string
 }

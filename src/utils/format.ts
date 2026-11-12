@@ -1,4 +1,4 @@
-import type { Difficulty, Intensity, MealType, MenuStatus, Role } from '@/api/types'
+import type { Difficulty, GatheringMode, GatheringStatus, Intensity, MealType, MenuStatus, Role, Rsvp } from '@/api/types'
 
 export const MEAL_LABELS: Record<MealType, string> = { BREAKFAST: '早餐', LUNCH: '午餐', DINNER: '晚餐' }
 export const MEAL_TYPES: MealType[] = ['BREAKFAST', 'LUNCH', 'DINNER']
@@ -6,6 +6,15 @@ export const ROLE_LABELS: Record<Role, string> = { ADMIN: '管理员', COOK: '�
 export const INTENSITY_LABELS: Record<Intensity, string> = { WANT: '很想吃', OK: '都可以', AVOID: '别做这个' }
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = { EASY: '简单', MEDIUM: '中等', HARD: '有难度' }
 export const STATUS_LABELS: Record<MenuStatus, string> = { OPEN: '点餐中', LOCKED: '已截止', CONFIRMED: '菜单已定', READY: '开饭啦' }
+
+export const MODE_LABELS: Record<GatheringMode, string> = { HOST_COOK: '主人掌厨', VOTE: '众筹投票', POTLUCK: '各带一道' }
+export const MODE_HINTS: Record<GatheringMode, string> = {
+  HOST_COOK: '大家说想吃什么，主人定菜单、负责采购和下厨',
+  VOTE: '大家提议菜名并投票，一人一菜一票，主人按票数定菜单',
+  POTLUCK: '每人认领一道自己带来的菜，主人看谁带什么',
+}
+export const GATHERING_STATUS_LABELS: Record<GatheringStatus, string> = { OPEN: '邀请中', CONFIRMED: '菜单已定', CLOSED: '已散场' }
+export const RSVP_LABELS: Record<Rsvp, string> = { YES: '来', MAYBE: '待定', NO: '不来' }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 

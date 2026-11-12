@@ -10,6 +10,16 @@
       </view>
       <slot-picker @change="load" />
 
+      <view v-for="gs in slotGatherings" :key="gs.id" class="card gathering-tip" @click="openGathering(gs)">
+        <view class="row between">
+          <view class="flex1">
+            <view class="gt-title">🎉 这餐有一场临时聚餐</view>
+            <view class="muted">「{{ gs.title }}」· {{ gs.hostName }} 发起 · {{ GATHERING_STATUS_LABELS[gs.status] }}</view>
+          </view>
+          <text v-if="gs.joined" class="link">查看 ›</text>
+        </view>
+      </view>
+
       <view v-if="board" class="card status-card">
         <view class="row between">
           <view>
@@ -32,6 +42,9 @@
           <button class="btn" :disabled="!board.canEditWish" @click="goWish()">我想吃…</button>
           <button v-if="canCook" class="btn ghost" @click="goCook">掌厨工作台</button>
         </view>
+        <!-- #ifdef MP-WEIXIN -->
+        <view v-if="status !== 'READY'" class="remind link" @click="remind">🔔 提醒我开饭（微信消息）</view>
+        <!-- #endif -->
       </view>
 
       <view v-if="board?.menu?.items?.length" class="card">
@@ -105,15 +118,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onHide, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
-import { familyApi, menuApi } from '@/api'
-import type { BoardView, Intensity, MenuStatus, NotificationView } from '@/api/types'
+import { familyApi, gatheringApi, menuApi } from '@/api'
+import type { BoardView, FamilyGatheringSlot, Intensity, MenuStatus, NotificationView } from '@/api/types'
 import { canCook, currentFamily, ensureSession, session } from '@/store/session'
-import { dateLabel, deadlineLabel, INTENSITY_LABELS, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
+import { dateLabel, deadlineLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
+import { requestDinnerReminder } from '@/utils/subscribe'
 import SlotPicker from '@/components/SlotPicker.vue'
 import NoFamily from '@/components/NoFamily.vue'
 
 const board = ref<BoardView | null>(null)
 const latestNotice = ref<NotificationView | null>(null)
+/** 家庭日历占位：这餐有没有家人发起的临时聚餐 */
+const slotGatherings = ref<FamilyGatheringSlot[]>([])
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -143,12 +159,25 @@ async function load() {
   if (!(await ensureSession())) return
   const fid = currentFamily.value!.id
   try {
-    board.value = await menuApi.board(fid, session.date, session.mealType)
+    const [b, slots] = await Promise.all([
+      menuApi.board(fid, session.date, session.mealType),
+      gatheringApi.familySlots(fid, session.date, session.date).catch(() => []),
+    ])
+    board.value = b
+    slotGatherings.value = slots.filter((x) => x.mealType === session.mealType && x.status !== 'CLOSED')
     const notes = await familyApi.notifications(fid, 1)
     latestNotice.value = notes[0] || null
   } finally {
     uni.stopPullDownRefresh()
   }
+}
+
+function openGathering(gs: FamilyGatheringSlot) {
+  if (gs.joined) uni.navigateTo({ url: `/pages/gathering/detail?id=${gs.id}` })
+  else uni.showToast({ title: `这是${gs.hostName}的聚餐，需要被邀请才能查看`, icon: 'none' })
+}
+function remind() {
+  requestDinnerReminder()
 }
 
 function goWish(id?: number) {
@@ -194,4 +223,7 @@ onPullDownRefresh(load)
 .vote { padding: 16rpx 0; border-bottom: 1rpx solid #f2f2f2; }
 .members { margin-top: 20rpx; }
 .notice { font-size: 26rpx; color: #666; }
+.gathering-tip { background: #fff4e5; border: 2rpx solid #ffd9b0; }
+.gt-title { font-size: 28rpx; font-weight: 600; color: #b4610f; margin-bottom: 6rpx; }
+.remind { margin-top: 20rpx; text-align: center; }
 </style>
