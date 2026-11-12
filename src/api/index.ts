@@ -1,8 +1,8 @@
-import { request } from './request'
+import { request, uploadFile } from './request'
 import type {
-  AssignmentView, BoardView, ConfirmItem, DishDetail, DishSummary, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
+  AssignmentView, BoardView, ConfirmItem, DishDetail, DishRequest, DishSummary, MediaView, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
   GatheringDetail, GatheringForm, GatheringNotificationView, GatheringShoppingItemRequest, GatheringShoppingView,
-  GatheringSummary, HintView, InventoryView, InvitePreview, LeftoverView, LoginResponse, MealType, MeResponse,
+  GatheringSummary, HintView, InventoryView, LedgerView, InvitePreview, LeftoverView, LoginResponse, MealType, MeResponse,
   ApplyResult, MemberView, MenuView, NotificationView, PlanItemView, RatingRequest, RatingView, RotationView, Rsvp,
   ShoppingItemView, ShoppingListView, StatsView, SubscribeConfig, TemplateView, UserView, WishRequest, WishView,
 } from './types'
@@ -38,11 +38,16 @@ export const familyApi = {
 }
 
 export const dishApi = {
-  list: (fid: number, params: { category?: string; keyword?: string } = {}) =>
+  list: (fid: number, params: { category?: string; keyword?: string; includeInactive?: boolean } = {}) =>
     request<DishSummary[]>('GET', `${fam(fid)}/dishes?${qs(params)}`),
   categories: (fid: number) => request<string[]>('GET', `${fam(fid)}/dishes/categories`),
   detail: (fid: number, id: number, servings?: number) =>
     request<DishDetail>('GET', `${fam(fid)}/dishes/${id}?${qs({ servings })}`),
+  create: (fid: number, body: DishRequest) => request<DishDetail>('POST', `${fam(fid)}/dishes`, body),
+  update: (fid: number, id: number, body: DishRequest) => request<DishDetail>('PUT', `${fam(fid)}/dishes/${id}`, body),
+  deactivate: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/dishes/${id}`),
+  restore: (fid: number, id: number) => request<null>('POST', `${fam(fid)}/dishes/${id}/restore`),
+  upload: (fid: number, filePath: string) => uploadFile<MediaView>(`${fam(fid)}/media`, filePath),
 }
 
 export const wishApi = {
@@ -147,6 +152,7 @@ export const inventoryApi = {
   update: (fid: number, id: number, body: { name: string; amount?: number | null; unit?: string; staple?: boolean; note?: string }) =>
     request<InventoryView>('PUT', `${fam(fid)}/inventory/${id}`, body),
   remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/inventory/${id}`),
+  ledger: (fid: number, limit = 20) => request<LedgerView[]>('GET', `${fam(fid)}/inventory/ledger?limit=${limit}`),
 }
 
 export const leftoverApi = {

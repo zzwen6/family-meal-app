@@ -5,7 +5,7 @@
         <text>家庭库存</text>
         <text v-if="canEdit" class="link" @click="editInv()">登记</text>
       </view>
-      <view class="muted">生成采购清单时会对照这里的数量，家里有的就少买。对照不会自动改库存数字，需要时请自己改。</view>
+      <view class="muted">生成采购清单时会对照这里的数量、少买家里已有的，但生成时不改库存数字。勾选已买会入账，用掉对得上食材的剩菜、以及开饭时会按「家里已有」的量扣库存，也可以随时手工改。</view>
       <view v-if="!inventory.length" class="muted" style="margin-top: 16rpx">还没有库存</view>
       <view v-for="it in inventory" :key="it.id" class="item row between">
         <view>
@@ -44,6 +44,17 @@
         </view>
       </view>
     </view>
+
+    <view v-if="ledger.length" class="card">
+      <view class="card-title">最近变动</view>
+      <view v-for="l in ledger" :key="l.id" class="item">
+        <view class="row between">
+          <text>{{ LEDGER_LABELS[l.sourceType] || l.sourceType }} · {{ l.name }}</text>
+          <text>{{ l.delta > 0 ? '+' : '' }}{{ l.delta }}{{ l.unit || '' }}</text>
+        </view>
+        <view class="muted">{{ l.note || '' }}<text v-if="l.balanceAfter != null"> · 结余 {{ l.balanceAfter }}{{ l.unit || '' }}</text></view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -51,12 +62,13 @@
 import { computed, ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { inventoryApi, leftoverApi } from '@/api'
-import type { InventoryView, LeftoverView } from '@/api/types'
+import type { InventoryView, LedgerView, LeftoverView } from '@/api/types'
 import { canCook, currentFamily, ensureSession } from '@/store/session'
-import { amountLabel } from '@/utils/format'
+import { amountLabel, LEDGER_LABELS } from '@/utils/format'
 
 const inventory = ref<InventoryView[]>([])
 const leftovers = ref<LeftoverView[]>([])
+const ledger = ref<LedgerView[]>([])
 const showUsed = ref(false)
 const canEdit = computed(() => canCook.value)
 
@@ -64,12 +76,14 @@ async function load() {
   if (!(await ensureSession())) return
   const fid = currentFamily.value!.id
   try {
-    const [inv, lo] = await Promise.all([
+    const [inv, lo, led] = await Promise.all([
       inventoryApi.list(fid),
       leftoverApi.list(fid, showUsed.value ? undefined : false),
+      inventoryApi.ledger(fid, 15),
     ])
     inventory.value = inv
     leftovers.value = lo
+    ledger.value = led
   } finally {
     uni.stopPullDownRefresh()
   }

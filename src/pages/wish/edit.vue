@@ -51,7 +51,7 @@
           :class="{ active: form.dishId === d.id, big: simpleMode }"
           @click="pickDish(d.id)"
         >
-          <image v-if="d.coverUrl" :src="d.coverUrl" class="cover" mode="aspectFill" />
+          <image v-if="d.coverUrl" :src="mediaSrc(d.coverUrl)" class="cover" mode="aspectFill" />
           <view v-else class="cover ph">{{ d.name.slice(0, 1) }}</view>
           <view class="flex1">
             <view class="name">{{ d.name }}</view>
@@ -113,6 +113,7 @@ import { dishApi, familyApi, menuApi, wishApi } from '@/api'
 import type { DishSummary, HintView, Intensity, MemberView, WishRequest } from '@/api/types'
 import { canCook, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import { addDays, dateLabel, INTENSITY_LABELS, MEAL_LABELS, today } from '@/utils/format'
+import { mediaSrc } from '@/utils/media'
 import SlotPicker from '@/components/SlotPicker.vue'
 
 const intensities: Intensity[] = ['WANT', 'OK', 'AVOID']

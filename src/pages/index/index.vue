@@ -67,7 +67,7 @@
         <view class="card-title">本餐计划</view>
         <view class="muted" style="margin-bottom: 12rpx">{{ isChild ? '家里打算做这些，还没最终定下来。' : '模板预填的计划，掌厨确认时会带出来，还可以改。' }}</view>
         <view v-for="it in board.planItems" :key="it.id" class="menu-item" @click="it.dishId && goDish(it.dishId, it.servings)">
-          <image v-if="it.coverUrl" :src="it.coverUrl" class="cover" mode="aspectFill" />
+          <image v-if="it.coverUrl" :src="mediaSrc(it.coverUrl)" class="cover" mode="aspectFill" />
           <view v-else class="cover placeholder">{{ it.name.slice(0, 1) }}</view>
           <view class="flex1">
             <view class="name">{{ it.name }}</view>
@@ -82,7 +82,7 @@
           <text v-if="!isChild" class="link" @click="goShopping">采购清单 ›</text>
         </view>
         <view v-for="it in board.menu.items" :key="it.id" class="menu-item" @click="it.dishId && goDish(it.dishId, it.servings)">
-          <image v-if="it.coverUrl" :src="it.coverUrl" class="cover" mode="aspectFill" />
+          <image v-if="it.coverUrl" :src="mediaSrc(it.coverUrl)" class="cover" mode="aspectFill" />
           <view v-else class="cover placeholder">{{ it.name.slice(0, 1) }}</view>
           <view class="flex1">
             <view class="name">{{ it.name }}</view>
@@ -95,6 +95,10 @@
           </view>
           <text v-if="it.source === 'WISH'" class="tag primary">家人点的</text>
         </view>
+        <view v-if="board.menu.nutrition" class="muted note">
+          {{ isChild ? kcalLabel(board.menu.nutrition.total?.kcal, true) : ('本餐大约 ' + kcalLabel(board.menu.nutrition.total?.kcal).replace('约 ','') + '（按菜谱用料估算，不是检测）') }}
+        </view>
+        <view v-if="!isChild && board.menu.nutrition?.excluded?.length" class="muted">未计入：{{ board.menu.nutrition.excluded.join('；') }}</view>
         <view v-if="board.menu.note" class="muted note">📝 {{ board.menu.note }}</view>
       </view>
 
@@ -155,7 +159,8 @@ import { familyApi, gatheringApi, menuApi } from '@/api'
 import type { BoardView, FamilyGatheringSlot, Intensity, MemberView, MenuStatus, NotificationView } from '@/api/types'
 import { applyTabBar, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import type { HintType } from '@/api/types'
-import { dateLabel, deadlineLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
+import { dateLabel, deadlineLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, kcalLabel, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
+import { mediaSrc } from '@/utils/media'
 import { requestDinnerReminder } from '@/utils/subscribe'
 import SlotPicker from '@/components/SlotPicker.vue'
 import NoFamily from '@/components/NoFamily.vue'

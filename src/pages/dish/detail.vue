@@ -1,6 +1,6 @@
 <template>
   <view v-if="dish" class="page">
-    <image v-if="dish.coverUrl" :src="dish.coverUrl" class="hero" mode="aspectFill" />
+    <image v-if="dish.coverUrl" :src="mediaSrc(dish.coverUrl)" class="hero" mode="aspectFill" />
     <view v-else class="hero ph">{{ dish.name.slice(0, 1) }}</view>
     <view class="container">
       <view class="card">
@@ -10,6 +10,12 @@
           <text class="tag">{{ DIFFICULTY_LABELS[dish.difficulty] }}</text>
           <text class="tag">约 {{ dish.durationMinutes }} 分钟</text>
         </view>
+        <view v-if="dish.nutrition" class="muted nutri">
+          {{ isChild ? kcalLabel(dish.nutrition.total?.kcal, true) : (kcalLabel(dish.nutrition.total?.kcal) + '（整道） / ' + kcalLabel(dish.nutrition.perServing?.kcal) + '（每人份）') }}
+          <text v-if="dish.nutrition.override"> · 掌厨填写</text>
+          <text v-else> · 按用料估算</text>
+        </view>
+        <view v-if="!isChild && dish.nutrition?.excluded?.length" class="muted">未计入：{{ dish.nutrition.excluded.join('；') }}</view>
         <view v-if="dish.description" class="muted">{{ dish.description }}</view>
       </view>
 
@@ -43,12 +49,20 @@
           <view class="flex1">
             <view>{{ s.content }}</view>
             <view v-if="s.durationMinutes" class="muted">⏱ {{ s.durationMinutes }} 分钟</view>
+            <image v-if="s.imageUrl" :src="mediaSrc(s.imageUrl)" class="step-img" mode="widthFix" />
+            <!-- #ifdef MP-WEIXIN -->
+            <video v-if="s.videoUrl" :src="mediaSrc(s.videoUrl)" :poster="mediaSrc(s.videoCoverUrl)" class="step-video" object-fit="contain" />
+            <!-- #endif -->
+            <!-- #ifdef H5 -->
+            <video v-if="s.videoUrl" :src="mediaSrc(s.videoUrl)" :poster="mediaSrc(s.videoCoverUrl)" class="step-video" controls />
+            <!-- #endif -->
           </view>
         </view>
         <view v-if="!dish.steps.length" class="muted">还没写做法</view>
         <view v-if="dish.tips" class="tips">💡 {{ dish.tips }}</view>
       </view>
 
+      <button v-if="canCook" class="btn ghost block" style="margin-bottom: 16rpx" @click="edit">编辑菜谱</button>
       <button class="btn block" @click="want">我想吃这个</button>
     </view>
   </view>
@@ -60,8 +74,9 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishDetail } from '@/api/types'
-import { currentFamily, ensureSession } from '@/store/session'
-import { amountLabel, DIFFICULTY_LABELS } from '@/utils/format'
+import { canCook, currentFamily, ensureSession, isChild } from '@/store/session'
+import { amountLabel, DIFFICULTY_LABELS, kcalLabel } from '@/utils/format'
+import { mediaSrc } from '@/utils/media'
 
 const dish = ref<DishDetail | null>(null)
 const servings = ref(0)
@@ -82,6 +97,9 @@ function changeServings(n: number) {
 
 function want() {
   uni.navigateTo({ url: `/pages/wish/edit?dishId=${dishId}` })
+}
+function edit() {
+  uni.navigateTo({ url: `/pages/dish/edit?id=${dishId}` })
 }
 
 onLoad(async (q) => {
@@ -105,4 +123,7 @@ onLoad(async (q) => {
 .no { width: 44rpx; height: 44rpx; border-radius: 50%; background: $fm-primary; color: #fff; font-size: 24rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 4rpx; }
 .flex1 { flex: 1; }
 .tips { background: #fff8e6; padding: 20rpx; border-radius: 12rpx; font-size: 26rpx; color: #8a6d1f; }
+.step-img { width: 100%; border-radius: 12rpx; margin-top: 12rpx; }
+.step-video { width: 100%; height: 360rpx; margin-top: 12rpx; }
+.nutri { margin-top: 8rpx; }
 </style>

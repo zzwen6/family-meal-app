@@ -100,3 +100,17 @@ export function scoreLabel(n?: number | null): string {
 export function pct(n: number): string {
   return `${Math.round(n * 100)}%`
 }
+
+export function kcalLabel(kcal?: number | null, simple = false): string {
+  if (kcal === undefined || kcal === null || Number.isNaN(Number(kcal))) return ''
+  const n = Math.round(Number(kcal))
+  return simple ? `大约 ${n} 千卡` : `约 ${n} 千卡`
+}
+
+export const LEDGER_LABELS: Record<string, string> = {
+  PURCHASE: '采购入账',
+  PURCHASE_REVERT: '取消已买',
+  LEFTOVER_USE: '用掉剩菜',
+  MEAL_READY: '开饭用掉',
+  MANUAL: '手工调整',
+}

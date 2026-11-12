@@ -71,3 +71,43 @@ export function request<T>(method: Method, url: string, data?: unknown, opts: Re
     })
   })
 }
+
+/** 上传菜谱图片或短视频，字段名 file。 */
+export function uploadFile<T>(url: string, filePath: string, formData: Record<string, string> = {}): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const header: Record<string, string> = { Accept: 'application/json' }
+    const token = getToken()
+    if (token) header.Authorization = `Bearer ${token}`
+    uni.uploadFile({
+      url: API_BASE + url,
+      filePath,
+      name: 'file',
+      header,
+      formData,
+      timeout: 60000,
+      success: (res) => {
+        let body: unknown = res.data
+        if (typeof res.data === 'string' && res.data) {
+          try { body = JSON.parse(res.data) } catch { body = res.data }
+        }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(body as T)
+          return
+        }
+        const err = (body && typeof body === 'object' ? body : {}) as Partial<ApiError>
+        const e = new RequestError(res.statusCode, err.code || 'HTTP_' + res.statusCode, err.message || `上传失败（${res.statusCode}）`)
+        if (res.statusCode === 401) {
+          setToken(null)
+          onUnauthorized?.()
+        }
+        uni.showToast({ title: e.message, icon: 'none', duration: 2500 })
+        reject(e)
+      },
+      fail: () => {
+        const e = new RequestError(0, 'NETWORK', '网络异常，文件没传上去')
+        uni.showToast({ title: e.message, icon: 'none' })
+        reject(e)
+      },
+    })
+  })
+}

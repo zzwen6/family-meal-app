@@ -7,15 +7,16 @@
         <text class="cat" :class="{ active: !category }" @click="pick('')">全部</text>
         <text v-for="c in categories" :key="c" class="cat" :class="{ active: category === c }" @click="pick(c)">{{ c }}</text>
       </scroll-view>
-      <view v-if="loaded && !dishes.length" class="empty">{{ isChild ? '家里还没有菜谱，让大人先加一些吧。' : '还没有菜，掌厨可以在管理后台录入家里的拿手菜' }}</view>
+      <view v-if="canCook" class="btn ghost block" style="margin-bottom: 20rpx" @click="goEdit()">录入菜谱</view>
+      <view v-if="loaded && !dishes.length" class="empty">{{ isChild ? '家里还没有菜谱，让大人先加一些吧。' : '还没有菜，掌厨可以点上面的「录入菜谱」或在管理后台添加' }}</view>
       <view class="grid">
         <view v-for="d in dishes" :key="d.id" class="item" :class="{ big: isChild }" @click="open(d.id)">
-          <image v-if="d.coverUrl" :src="d.coverUrl" class="cover" mode="aspectFill" />
+          <image v-if="d.coverUrl" :src="mediaSrc(d.coverUrl)" class="cover" mode="aspectFill" />
           <view v-else class="cover ph">{{ d.name.slice(0, 1) }}</view>
           <view class="info">
             <view class="name">{{ d.name }}</view>
             <view v-if="!isChild" class="muted">{{ DIFFICULTY_LABELS[d.difficulty] }} · {{ d.durationMinutes }} 分钟 · {{ d.defaultServings }} 人份</view>
-            <view v-else class="muted">点一下告诉家里我想吃</view>
+            <view v-else class="muted">点一下告诉家里我想吃 · <text class="link" @click.stop="openDetail(d.id)">看做法</text></view>
           </view>
         </view>
       </view>
@@ -28,8 +29,9 @@ import { ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishSummary } from '@/api/types'
-import { applyTabBar, currentFamily, ensureSession, isChild, session } from '@/store/session'
+import { applyTabBar, canCook, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import { DIFFICULTY_LABELS } from '@/utils/format'
+import { mediaSrc } from '@/utils/media'
 import NoFamily from '@/components/NoFamily.vue'
 
 const dishes = ref<DishSummary[]>([])
@@ -65,6 +67,12 @@ function open(id: number) {
     return
   }
   uni.navigateTo({ url: `/pages/dish/detail?id=${id}` })
+}
+function openDetail(id: number) {
+  uni.navigateTo({ url: `/pages/dish/detail?id=${id}` })
+}
+function goEdit() {
+  uni.navigateTo({ url: '/pages/dish/edit' })
 }
 
 onShow(load)

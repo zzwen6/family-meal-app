@@ -83,12 +83,72 @@ export interface IngredientView {
   note?: string
 }
 
+export interface NutritionMacros {
+  kcal?: number
+  protein?: number
+  fat?: number
+  carb?: number
+}
+
+/** 营养是按用料估算的约数，不是检测或官方认证。 */
+export interface NutritionEstimate {
+  estimated: boolean
+  override: boolean
+  servings: number
+  total: NutritionMacros
+  perServing: NutritionMacros
+  excluded?: string[]
+}
+
+export interface NutritionOverride {
+  enabled?: boolean
+  kcal?: number | null
+  protein?: number | null
+  fat?: number | null
+  carb?: number | null
+}
+
+export interface DishStepView {
+  stepNo: number
+  content: string
+  durationMinutes?: number
+  imageUrl?: string
+  videoUrl?: string
+  videoCoverUrl?: string
+  videoDurationSeconds?: number
+}
+
 export interface DishDetail extends DishSummary {
   servings: number
   tips?: string
-  steps: { stepNo: number; content: string; durationMinutes?: number }[]
+  steps: DishStepView[]
   ingredients: IngredientView[]
   seasonings: IngredientView[]
+  nutrition?: NutritionEstimate
+  nutritionOverride?: boolean
+}
+
+export interface DishRequest {
+  name: string
+  category: string
+  difficulty?: string
+  durationMinutes: number
+  defaultServings: number
+  coverUrl?: string | null
+  description?: string
+  tips?: string
+  steps?: { content: string; durationMinutes?: number | null; imageUrl?: string | null; videoUrl?: string | null; videoCoverUrl?: string | null; videoDurationSeconds?: number | null }[]
+  ingredients?: { name: string; amount?: number | null; unit?: string; staple?: boolean; note?: string }[]
+  seasonings?: { name: string; amount?: number | null; unit?: string; staple?: boolean; note?: string }[]
+  nutrition?: NutritionOverride
+}
+
+export interface MediaView {
+  url: string
+  storedName: string
+  contentType: string
+  kind: 'IMAGE' | 'VIDEO'
+  sizeBytes: number
 }
 
 export interface WishView {
@@ -149,6 +209,7 @@ export interface MenuView {
   assignedMemberName?: string
   assignedSource?: 'AUTO' | 'MANUAL'
   proxyConfirm?: boolean
+  nutrition?: NutritionEstimate
 }
 
 export interface MemberStatus {
@@ -214,6 +275,19 @@ export interface InventoryView {
   unit?: string
   staple: boolean
   note?: string
+}
+
+export interface LedgerView {
+  id: number
+  inventoryItemId?: number
+  sourceType: string
+  sourceId?: number
+  name: string
+  unit?: string
+  delta: number
+  balanceAfter?: number
+  note?: string
+  createdAt: string
 }
 
 export interface BoardView {
