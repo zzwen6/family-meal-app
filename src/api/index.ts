@@ -3,8 +3,8 @@ import type {
   AssignmentView, BoardView, ConfirmItem, DishDetail, DishSummary, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
   GatheringDetail, GatheringForm, GatheringNotificationView, GatheringShoppingItemRequest, GatheringShoppingView,
   GatheringSummary, HintView, InventoryView, InvitePreview, LeftoverView, LoginResponse, MealType, MeResponse,
-  MemberView, MenuView, NotificationView, RotationView, Rsvp, ShoppingItemView, ShoppingListView, SubscribeConfig,
-  UserView, WishRequest, WishView,
+  ApplyResult, MemberView, MenuView, NotificationView, PlanItemView, RatingRequest, RatingView, RotationView, Rsvp,
+  ShoppingItemView, ShoppingListView, StatsView, SubscribeConfig, TemplateView, UserView, WishRequest, WishView,
 } from './types'
 
 const fam = (fid: number) => `/api/families/${fid}`
@@ -28,8 +28,10 @@ export const familyApi = {
   join: (inviteCode: string, displayName?: string) => request<FamilyView>('POST', '/api/families/join', { inviteCode, displayName }),
   get: (fid: number) => request<FamilyView>('GET', fam(fid)),
   members: (fid: number) => request<MemberView[]>('GET', `${fam(fid)}/members`),
-  updateMember: (fid: number, mid: number, body: Partial<Pick<MemberView, 'displayName' | 'dietaryNotes' | 'allergies' | 'role'>>) =>
+  updateMember: (fid: number, mid: number, body: Partial<Pick<MemberView, 'displayName' | 'dietaryNotes' | 'allergies' | 'role' | 'guardianMemberId'>> & { password?: string }) =>
     request<MemberView>('PUT', `${fam(fid)}/members/${mid}`, body),
+  createMember: (fid: number, body: { displayName: string; role?: string; username: string; password: string; dietaryNotes?: string; allergies?: string; guardianMemberId?: number | null }) =>
+    request<MemberView>('POST', `${fam(fid)}/members`, body),
   notifications: (fid: number, limit = 10) => request<NotificationView[]>('GET', `${fam(fid)}/notifications?limit=${limit}`),
   update: (fid: number, body: Partial<Pick<FamilyView, 'name' | 'breakfastDeadline' | 'lunchDeadline' | 'dinnerDeadline' | 'fatigueWindowDays' | 'fatigueThreshold'>>) =>
     request<FamilyView>('PUT', fam(fid), body),
@@ -46,7 +48,8 @@ export const dishApi = {
 export const wishApi = {
   list: (fid: number, date: string, mealType: MealType) =>
     request<WishView[]>('GET', `${fam(fid)}/wishes?${qs({ date, mealType })}`),
-  mine: (fid: number, from?: string, to?: string) => request<WishView[]>('GET', `${fam(fid)}/wishes/mine?${qs({ from, to })}`),
+  mine: (fid: number, from?: string, to?: string, memberId?: number) =>
+    request<WishView[]>('GET', `${fam(fid)}/wishes/mine?${qs({ from, to, memberId })}`),
   create: (fid: number, body: WishRequest) => request<WishView>('POST', `${fam(fid)}/wishes`, body),
   update: (fid: number, id: number, body: WishRequest) => request<WishView>('PUT', `${fam(fid)}/wishes/${id}`, body),
   remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/wishes/${id}`),
@@ -154,6 +157,33 @@ export const leftoverApi = {
     request<LeftoverView>('PUT', `${fam(fid)}/leftovers/${id}`, body),
   use: (fid: number, id: number, menuId?: number) => request<LeftoverView>('POST', `${fam(fid)}/leftovers/${id}/use`, { menuId }),
   remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/leftovers/${id}`),
+}
+
+
+export const templateApi = {
+  list: (fid: number) => request<TemplateView[]>('GET', `${fam(fid)}/week-templates`),
+  get: (fid: number, id: number) => request<TemplateView>('GET', `${fam(fid)}/week-templates/${id}`),
+  create: (fid: number, body: { name: string; note?: string; items: { dayOfWeek: number; mealType: string; dishId?: number | null; customName?: string | null; servings?: number }[] }) =>
+    request<TemplateView>('POST', `${fam(fid)}/week-templates`, body),
+  update: (fid: number, id: number, body: { name: string; note?: string; items: { dayOfWeek: number; mealType: string; dishId?: number | null; customName?: string | null; servings?: number }[] }) =>
+    request<TemplateView>('PUT', `${fam(fid)}/week-templates/${id}`, body),
+  remove: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/week-templates/${id}`),
+  fromWeek: (fid: number, body: { weekStart: string; name?: string; note?: string }) =>
+    request<TemplateView>('POST', `${fam(fid)}/week-templates/from-week`, body),
+  apply: (fid: number, id: number, body: { weekStart: string; overwrite?: boolean }) =>
+    request<ApplyResult>('POST', `${fam(fid)}/week-templates/${id}/apply`, body),
+  plans: (fid: number, from: string, to: string) =>
+    request<PlanItemView[]>('GET', `${fam(fid)}/meal-plans?${qs({ from, to })}`, undefined, { silent: true }),
+}
+
+export const ratingApi = {
+  list: (fid: number, menuId: number) => request<RatingView[]>('GET', `${fam(fid)}/menus/${menuId}/ratings`),
+  upsert: (fid: number, menuId: number, body: RatingRequest) =>
+    request<RatingView>('POST', `${fam(fid)}/menus/${menuId}/ratings`, body),
+}
+
+export const statsApi = {
+  get: (fid: number, from?: string, to?: string) => request<StatsView>('GET', `${fam(fid)}/stats?${qs({ from, to })}`),
 }
 
 export const wechatApi = {

@@ -6,11 +6,11 @@
       <text class="muted">修改意愿</text>
     </view>
 
-    <view v-if="canCook && members.length > 1 && !editingId" class="card">
-      <view class="card-title">替谁点</view>
+    <view v-if="canPickMember && members.length && !editingId" class="card">
+      <view class="card-title">{{ isChild ? '' : '替谁点' }}</view>
       <view class="row wrap">
         <text
-          v-for="m in members"
+          v-for="m in pickMembers"
           :key="m.id"
           class="chip"
           :class="{ active: (form.memberId || myMemberId) === m.id }"
@@ -21,16 +21,17 @@
 
     <view class="card row between">
       <view>
-        <view>这餐不在家吃</view>
-        <view class="muted">掌厨会少做一份</view>
+        <view>{{ simpleMode ? '今晚我不在家吃饭' : '这餐不在家吃' }}</view>
+        <view class="muted">{{ simpleMode ? '告诉家里少做一份就好' : '掌厨会少做一份' }}</view>
       </view>
       <switch :checked="form.notEatingHome" color="#e6772e" @change="(e: any) => (form.notEatingHome = e.detail.value)" />
     </view>
 
     <template v-if="!form.notEatingHome">
       <view class="card">
-        <view class="card-title">想吃什么</view>
+        <view class="card-title">{{ simpleMode ? '点一个你想吃的' : '想吃什么' }}</view>
         <input
+          v-if="!simpleMode"
           class="input"
           v-model="form.freeText"
           placeholder="菜谱里没有？直接写，比如「猪脚」"
@@ -47,7 +48,7 @@
           v-for="d in filteredDishes"
           :key="d.id"
           class="dish"
-          :class="{ active: form.dishId === d.id }"
+          :class="{ active: form.dishId === d.id, big: simpleMode }"
           @click="pickDish(d.id)"
         >
           <image v-if="d.coverUrl" :src="d.coverUrl" class="cover" mode="aspectFill" />
@@ -61,7 +62,23 @@
         </view>
       </view>
 
-      <view class="card">
+      <view v-if="simpleMode" class="card">
+        <view class="card-title">想吃还是不吃</view>
+        <view class="seg">
+          <view class="seg-item" :class="{ active: form.intensity === 'WANT' }" @click="form.intensity = 'WANT'">我想吃</view>
+          <view class="seg-item" :class="{ active: form.intensity === 'AVOID' }" @click="form.intensity = 'AVOID'">不吃这个</view>
+        </view>
+        <view class="row between servings">
+          <text>要几份</text>
+          <view class="row stepper big-step">
+            <text class="step" @click="form.servings = Math.max(1, form.servings - 1)">−</text>
+            <text class="val">{{ form.servings }}</text>
+            <text class="step" @click="form.servings = Math.min(20, form.servings + 1)">＋</text>
+          </view>
+        </view>
+      </view>
+
+      <view v-else class="card">
         <view class="card-title">有多想吃</view>
         <view class="seg">
           <view
@@ -84,7 +101,7 @@
       </view>
     </template>
 
-    <button class="btn block" :loading="saving" @click="submit">{{ editingId ? '保存修改' : '提交' }}</button>
+    <button class="btn block" :loading="saving" @click="submit">{{ editingId ? '保存修改' : (simpleMode ? '就选这个' : '提交') }}</button>
     <button v-if="editingId" class="btn ghost block" style="margin-top: 20rpx" @click="remove">删除这条</button>
   </view>
 </template>
@@ -94,7 +111,7 @@ import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { dishApi, familyApi, menuApi, wishApi } from '@/api'
 import type { DishSummary, HintView, Intensity, MemberView, WishRequest } from '@/api/types'
-import { canCook, currentFamily, ensureSession, session } from '@/store/session'
+import { canCook, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import { addDays, dateLabel, INTENSITY_LABELS, MEAL_LABELS, today } from '@/utils/format'
 import SlotPicker from '@/components/SlotPicker.vue'
 
@@ -106,6 +123,13 @@ const editingId = ref<number | null>(null)
 const saving = ref(false)
 const hints = ref<HintView[]>([])
 const myMemberId = computed(() => currentFamily.value?.myMemberId)
+const wards = computed(() => members.value.filter((m) => m.role === 'CHILD' && m.guardianMemberId === myMemberId.value))
+const pickMembers = computed(() => {
+  if (canCook.value) return members.value
+  return members.value.filter((m) => m.id === myMemberId.value || (m.role === 'CHILD' && m.guardianMemberId === myMemberId.value))
+})
+const canPickMember = computed(() => !isChild.value && pickMembers.value.length > 1)
+const simpleMode = computed(() => isChild.value || (!!form.memberId && form.memberId !== myMemberId.value && members.value.find((m) => m.id === form.memberId)?.role === 'CHILD'))
 
 const form = reactive({
   mealDate: session.date,
@@ -143,11 +167,12 @@ onLoad(async (q) => {
   const fid = currentFamily.value!.id
   const [list, mem] = await Promise.all([
     dishApi.list(fid),
-    canCook.value ? familyApi.members(fid) : Promise.resolve([]),
+    isChild.value ? Promise.resolve([]) : familyApi.members(fid),
   ])
   dishes.value = list
   members.value = mem
   if (q?.dishId) form.dishId = Number(q.dishId)
+  if (q?.memberId) form.memberId = Number(q.memberId)
   if (q?.id) {
     editingId.value = Number(q.id)
     const mine = await wishApi.mine(fid, today(), addDays(today(), 14))
@@ -229,4 +254,9 @@ function remove() {
 .stepper { background: #f3f0ec; border-radius: 999rpx; }
 .step { width: 64rpx; text-align: center; font-size: 34rpx; color: $fm-primary; line-height: 60rpx; }
 .val { width: 60rpx; text-align: center; font-weight: 600; }
+.dish.big { padding: 24rpx; margin-bottom: 16rpx; border: 4rpx solid #f3f0ec; }
+.dish.big .cover { width: 140rpx; height: 140rpx; }
+.dish.big .name { font-size: 36rpx; }
+.big-step .step { width: 80rpx; font-size: 44rpx; line-height: 80rpx; }
+.big-step .val { font-size: 36rpx; }
 </style>

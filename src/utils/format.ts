@@ -79,3 +79,24 @@ export const HINT_TYPE_LABELS: Record<HintType, string> = {
   AVOID: '忌口',
   LEFTOVER: '剩菜',
 }
+
+export const DOW_LABELS = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日']
+
+/** 该日期所在周的周一（本地日历）。 */
+export function mondayOf(date: string = today()): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const x = new Date(y, m - 1, d)
+  const dow = x.getDay() // 0 Sun
+  const back = dow === 0 ? 6 : dow - 1
+  x.setDate(x.getDate() - back)
+  return fmtDate(x)
+}
+
+export function scoreLabel(n?: number | null): string {
+  if (n === undefined || n === null || Number.isNaN(n)) return '还没评分'
+  return `${Math.round(n * 10) / 10} 分`
+}
+
+export function pct(n: number): string {
+  return `${Math.round(n * 100)}%`
+}

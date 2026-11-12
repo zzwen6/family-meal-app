@@ -32,6 +32,22 @@ export const currentFamily = computed<FamilyView | null>(
 )
 export const canCook = computed(() => !!currentFamily.value && ['ADMIN', 'COOK'].includes(currentFamily.value.myRole))
 export const isAdmin = computed(() => currentFamily.value?.myRole === 'ADMIN')
+export const isChild = computed(() => currentFamily.value?.myRole === 'CHILD')
+
+/** 儿童账号把第 2、3 个 tab 改成「我想吃 / 吃过」；大人改回「菜谱 / 采购」。 */
+export function applyTabBar() {
+  try {
+    if (isChild.value) {
+      uni.setTabBarItem({ index: 1, text: '我想吃' })
+      uni.setTabBarItem({ index: 2, text: '吃过' })
+    } else {
+      uni.setTabBarItem({ index: 1, text: '菜谱' })
+      uni.setTabBarItem({ index: 2, text: '采购' })
+    }
+  } catch {
+    /* H5 或尚未渲染 tabBar 时忽略 */
+  }
+}
 
 function apply(res: { user: UserView; families: FamilyView[] }) {
   session.user = res.user
@@ -39,12 +55,14 @@ function apply(res: { user: UserView; families: FamilyView[] }) {
   if (!res.families.some((f) => f.id === session.familyId)) {
     selectFamily(res.families[0]?.id ?? null)
   }
+  applyTabBar()
 }
 
 export function selectFamily(id: number | null) {
   session.familyId = id
   if (id) uni.setStorageSync(FAMILY_KEY, id)
   else uni.removeStorageSync(FAMILY_KEY)
+  applyTabBar()
 }
 
 export function onLoggedIn(res: LoginResponse) {

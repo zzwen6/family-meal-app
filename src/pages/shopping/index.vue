@@ -1,6 +1,20 @@
 <template>
   <view class="container">
     <template v-if="session.ready && session.token && !currentFamily"><no-family /></template>
+    <template v-else-if="isChild">
+      <view class="card">
+        <view class="card-title">我们吃过什么</view>
+        <view class="muted">这是家里最近做过的饭，开饭以后可以去「今晚」给它打分。</view>
+      </view>
+      <view v-if="!childMeals.length" class="card muted">这一周还没有记下吃过的饭。</view>
+      <view v-for="d in childMeals" :key="d.date + d.mealType" class="card">
+        <view class="name">{{ dateLabel(d.date) }}{{ MEAL_LABELS[d.mealType] }}</view>
+        <view class="muted">{{ d.items.map((i) => i.name).join('、') || '还没定菜' }}</view>
+        <view v-if="d.averageScore" class="muted">大家觉得 {{ scoreLabel(d.averageScore) }}</view>
+        <button v-if="d.status === 'READY' && d.menuId" class="btn ghost small" style="margin-top: 16rpx" @click="goTonight">去打分</button>
+      </view>
+      <button class="btn ghost block" @click="goStats">看更多</button>
+    </template>
     <template v-else>
       <slot-picker @change="load" />
       <view v-if="loaded && !list" class="card empty">
@@ -63,25 +77,43 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
-import { menuApi, shoppingApi } from '@/api'
+import { menuApi, shoppingApi, statsApi } from '@/api'
 import { RequestError } from '@/api/request'
-import type { MenuView, ShoppingItemView, ShoppingListView } from '@/api/types'
-import { canCook, currentFamily, ensureSession, session } from '@/store/session'
-import { amountLabel, dateLabel, MEAL_LABELS } from '@/utils/format'
+import type { DayMeal, MenuView, ShoppingItemView, ShoppingListView } from '@/api/types'
+import { applyTabBar, canCook, currentFamily, ensureSession, isChild, session } from '@/store/session'
+import { addDays, amountLabel, dateLabel, MEAL_LABELS, mondayOf, scoreLabel } from '@/utils/format'
 import SlotPicker from '@/components/SlotPicker.vue'
 import NoFamily from '@/components/NoFamily.vue'
 
 const list = ref<ShoppingListView | null>(null)
 const menu = ref<MenuView | null>(null)
 const loaded = ref(false)
+const childMeals = ref<DayMeal[]>([])
 const newItem = reactive({ name: '', amount: '', unit: '' })
 
 const percent = computed(() => (list.value && list.value.toBuyCount ? Math.round((list.value.purchasedCount / list.value.toBuyCount) * 100) : 0))
 const dishNames = computed(() => menu.value?.items.map((i) => i.name).join('、') || '')
 
+function goTonight() {
+  uni.switchTab({ url: '/pages/index/index' })
+}
+function goStats() {
+  uni.navigateTo({ url: '/pages/stats/index' })
+}
+
 async function load() {
   if (!(await ensureSession())) return
   const fid = currentFamily.value!.id
+  applyTabBar()
+  if (isChild.value) {
+    try {
+      const s = await statsApi.get(fid, mondayOf(), addDays(mondayOf(), 6))
+      childMeals.value = s.days.filter((d) => !d.plannedOnly)
+    } finally {
+      uni.stopPullDownRefresh()
+    }
+    return
+  }
   try {
     const board = await menuApi.board(fid, session.date, session.mealType)
     menu.value = board.menu || null

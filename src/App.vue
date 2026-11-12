@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onLaunch } from '@dcloudio/uni-app'
-import { bootstrap } from '@/store/session'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
+import { applyTabBar, bootstrap } from '@/store/session'
 
 onLaunch(() => {
-  bootstrap()
+  bootstrap().then(() => applyTabBar())
 })
+onShow(() => applyTabBar())
 </script>
 
 <style lang="scss">

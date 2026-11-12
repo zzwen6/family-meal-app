@@ -13,7 +13,11 @@
     { "path": "pages/gathering/detail", "style": { "navigationBarTitleText": "聚餐", "enablePullDownRefresh": true } },
     { "path": "pages/gathering/join", "style": { "navigationBarTitleText": "聚餐邀请" } },
     { "path": "pages/rotation/index", "style": { "navigationBarTitleText": "掌厨安排", "enablePullDownRefresh": true } },
-    { "path": "pages/inventory/index", "style": { "navigationBarTitleText": "库存和剩菜", "enablePullDownRefresh": true } }
+    { "path": "pages/inventory/index", "style": { "navigationBarTitleText": "库存和剩菜", "enablePullDownRefresh": true } },
+    { "path": "pages/stats/index", "style": { "navigationBarTitleText": "本周与统计", "enablePullDownRefresh": true } },
+    { "path": "pages/template/index", "style": { "navigationBarTitleText": "周菜单模板", "enablePullDownRefresh": true } },
+    { "path": "pages/template/edit", "style": { "navigationBarTitleText": "编辑模板" } },
+    { "path": "pages/family/members", "style": { "navigationBarTitleText": "家人与孩子" } }
   ],
   "tabBar": {
     "color": "#8a8a8a",

@@ -57,6 +57,8 @@ export interface MemberView {
   username?: string
   wechatBound: boolean
   joinedAt: string
+  guardianMemberId?: number | null
+  guardianName?: string | null
 }
 
 export interface DishSummary {
@@ -231,6 +233,136 @@ export interface BoardView {
   proxyConfirm: boolean
   hints: HintView[]
   leftovers: LeftoverView[]
+  planItems: PlanItemView[]
+  ratings: RatingView[]
+  myRating?: RatingView | null
+}
+
+export interface PlanItemView {
+  id: number
+  mealDate: string
+  mealType: MealType
+  dishId?: number | null
+  name: string
+  servings: number
+  coverUrl?: string
+  sourceTemplateId?: number | null
+}
+
+export interface RatingView {
+  id: number
+  menuId: number
+  memberId: number
+  memberName: string
+  score: number
+  comment?: string
+  editable: boolean
+  updatedAt: string
+}
+
+export interface RatingRequest {
+  score: number
+  comment?: string
+  memberId?: number | null
+}
+
+export interface TemplateItemInput {
+  dayOfWeek: number
+  mealType: MealType
+  dishId?: number | null
+  customName?: string | null
+  servings?: number
+}
+
+export interface TemplateItemView {
+  id: number
+  dayOfWeek: number
+  mealType: MealType
+  dishId?: number | null
+  name: string
+  servings: number
+  coverUrl?: string
+}
+
+export interface TemplateView {
+  id: number
+  name: string
+  note?: string
+  items: TemplateItemView[]
+}
+
+export interface ApplyResult {
+  weekStart: string
+  overwrite: boolean
+  appliedSlots: number
+  skippedConfirmed: number
+  skippedExistingPlan: number
+  itemsWritten: number
+}
+
+export interface DishBrief {
+  dishId?: number | null
+  name: string
+  servings: number
+}
+
+export interface DayMeal {
+  date: string
+  mealType: MealType
+  menuId?: number | null
+  status?: MenuStatus | null
+  plannedOnly: boolean
+  items: DishBrief[]
+  assignedMemberId?: number | null
+  assignedMemberName?: string | null
+  confirmedById?: number | null
+  confirmedByName?: string | null
+  averageScore?: number | null
+  ratingCount: number
+}
+
+export interface DishCookStat {
+  dishId?: number | null
+  name: string
+  times: number
+  lastCooked?: string | null
+  averageScore?: number | null
+}
+
+export interface DishWishStat {
+  dishId?: number | null
+  name: string
+  wantCount: number
+  selectedCount: number
+  selectedRate: number
+}
+
+export interface MemberFairness {
+  memberId: number
+  displayName: string
+  wantCount: number
+  fulfilledCount: number
+  fulfillmentRate: number
+  assignedCookCount: number
+  confirmedCookCount: number
+}
+
+export interface FatigueStat {
+  dishId?: number | null
+  name: string
+  times: number
+  windowDays: number
+  threshold: number
+}
+
+export interface StatsView {
+  from: string
+  to: string
+  days: DayMeal[]
+  frequentDishes: DishCookStat[]
+  frequentWishes: DishWishStat[]
+  fairness: MemberFairness[]
+  fatigue: FatigueStat[]
 }
 
 export interface ConfirmItem {

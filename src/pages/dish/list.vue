@@ -1,20 +1,21 @@
 <template>
-  <view class="container">
+  <view class="container" :class="{ child: isChild }">
     <template v-if="session.ready && session.token && !currentFamily"><no-family /></template>
     <template v-else>
-      <input class="input search" v-model="keyword" placeholder="搜菜名" confirm-type="search" @confirm="load" />
+      <input class="input search" v-model="keyword" :placeholder="isChild ? '找你想吃的菜' : '搜菜名'" confirm-type="search" @confirm="load" />
       <scroll-view scroll-x class="cats" :show-scrollbar="false">
         <text class="cat" :class="{ active: !category }" @click="pick('')">全部</text>
         <text v-for="c in categories" :key="c" class="cat" :class="{ active: category === c }" @click="pick(c)">{{ c }}</text>
       </scroll-view>
-      <view v-if="loaded && !dishes.length" class="empty">还没有菜，掌厨可以在管理后台录入家里的拿手菜</view>
+      <view v-if="loaded && !dishes.length" class="empty">{{ isChild ? '家里还没有菜谱，让大人先加一些吧。' : '还没有菜，掌厨可以在管理后台录入家里的拿手菜' }}</view>
       <view class="grid">
-        <view v-for="d in dishes" :key="d.id" class="item" @click="open(d.id)">
+        <view v-for="d in dishes" :key="d.id" class="item" :class="{ big: isChild }" @click="open(d.id)">
           <image v-if="d.coverUrl" :src="d.coverUrl" class="cover" mode="aspectFill" />
           <view v-else class="cover ph">{{ d.name.slice(0, 1) }}</view>
           <view class="info">
             <view class="name">{{ d.name }}</view>
-            <view class="muted">{{ DIFFICULTY_LABELS[d.difficulty] }} · {{ d.durationMinutes }} 分钟 · {{ d.defaultServings }} 人份</view>
+            <view v-if="!isChild" class="muted">{{ DIFFICULTY_LABELS[d.difficulty] }} · {{ d.durationMinutes }} 分钟 · {{ d.defaultServings }} 人份</view>
+            <view v-else class="muted">点一下告诉家里我想吃</view>
           </view>
         </view>
       </view>
@@ -27,7 +28,7 @@ import { ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishSummary } from '@/api/types'
-import { currentFamily, ensureSession, session } from '@/store/session'
+import { applyTabBar, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import { DIFFICULTY_LABELS } from '@/utils/format'
 import NoFamily from '@/components/NoFamily.vue'
 
@@ -48,6 +49,7 @@ async function load() {
     dishes.value = list
     categories.value = cats
     loaded.value = true
+    applyTabBar()
   } finally {
     uni.stopPullDownRefresh()
   }
@@ -58,6 +60,10 @@ function pick(c: string) {
   load()
 }
 function open(id: number) {
+  if (isChild.value) {
+    uni.navigateTo({ url: `/pages/wish/edit?dishId=${id}` })
+    return
+  }
   uni.navigateTo({ url: `/pages/dish/detail?id=${id}` })
 }
 
@@ -76,4 +82,8 @@ onPullDownRefresh(load)
 .ph { background: $fm-primary-light; color: $fm-primary; display: flex; align-items: center; justify-content: center; font-size: 72rpx; font-weight: 700; }
 .info { padding: 16rpx 20rpx 20rpx; }
 .name { font-size: 30rpx; font-weight: 600; margin-bottom: 6rpx; }
+.child .item.big { width: 100%; }
+.child .cover { height: 320rpx; }
+.child .name { font-size: 40rpx; }
+.child .ph { font-size: 96rpx; }
 </style>

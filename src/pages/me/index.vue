@@ -11,16 +11,29 @@
       </view>
     </view>
 
-    <view v-if="currentFamily" class="card">
+    <view v-if="currentFamily && !isChild" class="card">
       <view class="card-title">家庭日常</view>
-      <view class="muted">掌厨轮换、本周谁做饭，以及家里的库存和剩菜。</view>
-      <view class="row gap gathering-actions">
+      <view class="muted">掌厨轮换、本周谁做饭、周菜单模板，以及家里的库存和剩菜。</view>
+      <view class="row gap gathering-actions wrap">
+        <button class="btn ghost small flex1" @click="goStats">本周与统计</button>
+        <button v-if="canCook" class="btn ghost small flex1" @click="goTemplates">周菜单模板</button>
+      </view>
+      <view class="row gap gathering-actions wrap">
         <button class="btn ghost small flex1" @click="goRotation">掌厨安排</button>
         <button class="btn ghost small flex1" @click="goInventory">库存和剩菜</button>
       </view>
+      <view v-if="isAdmin || wards.length" class="row gap gathering-actions">
+        <button class="btn ghost small flex1" @click="goMembers">家人与孩子</button>
+      </view>
     </view>
 
-    <view class="card">
+    <view v-if="currentFamily && isChild" class="card">
+      <view class="card-title">我们吃过什么</view>
+      <view class="muted">看看这周家里做了哪些菜，开饭以后还可以给这顿打个分。</view>
+      <button class="btn block" style="margin-top: 16rpx" @click="goStats">去看看</button>
+    </view>
+
+    <view v-if="!isChild" class="card">
       <view class="card-title">临时聚餐</view>
       <view class="muted">约朋友、亲戚来吃饭，发邀请让大家应邀点菜；和家里的点餐分开，客人看不到家里的数据。</view>
       <view class="row gap gathering-actions">
@@ -44,7 +57,7 @@
         </view>
         <text v-if="currentFamily?.id === f.id" class="tag primary">当前</text>
       </view>
-      <view v-if="currentFamily?.inviteCode" class="invite row between">
+      <view v-if="currentFamily?.inviteCode && !isChild" class="invite row between">
         <view>
           <view class="muted">邀请码（发给家人加入）</view>
           <view class="code">{{ currentFamily.inviteCode }}</view>
@@ -67,7 +80,7 @@
       <button class="btn block" @click="saveProfile">保存</button>
     </view>
 
-    <view class="card">
+    <view v-if="!isChild" class="card">
       <view class="card-title">加入或创建家庭</view>
       <input class="input" v-model="inviteCode" placeholder="输入邀请码" maxlength="16" />
       <button class="btn ghost block" @click="join">加入家庭</button>
@@ -93,7 +106,7 @@ import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { familyApi } from '@/api'
 import type { MemberView, NotificationView } from '@/api/types'
-import { currentFamily, ensureSession, logout, refreshFamily, refreshMe, selectFamily, session } from '@/store/session'
+import { applyTabBar, canCook, currentFamily, ensureSession, isAdmin, isChild, logout, refreshFamily, refreshMe, selectFamily, session } from '@/store/session'
 import { ROLE_LABELS } from '@/utils/format'
 
 const members = ref<MemberView[]>([])
@@ -102,6 +115,7 @@ const inviteCode = ref('')
 const familyName = ref('')
 const profile = reactive({ displayName: '', allergies: '', dietaryNotes: '' })
 const me = computed(() => members.value.find((m) => m.id === currentFamily.value?.myMemberId) || null)
+const wards = computed(() => members.value.filter((m) => m.role === 'CHILD' && m.guardianMemberId === currentFamily.value?.myMemberId))
 
 async function load() {
   if (!(await ensureSession({ needFamily: false }))) return
@@ -115,6 +129,7 @@ async function load() {
   const [mem, notes] = await Promise.all([familyApi.members(fid), familyApi.notifications(fid, 5)])
   members.value = mem
   notices.value = notes
+  applyTabBar()
   if (me.value) {
     Object.assign(profile, {
       displayName: me.value.displayName,
@@ -162,6 +177,15 @@ async function create() {
   load()
 }
 
+function goStats() {
+  uni.navigateTo({ url: '/pages/stats/index' })
+}
+function goTemplates() {
+  uni.navigateTo({ url: '/pages/template/index' })
+}
+function goMembers() {
+  uni.navigateTo({ url: '/pages/family/members' })
+}
 function goRotation() {
   uni.navigateTo({ url: '/pages/rotation/index' })
 }

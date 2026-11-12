@@ -123,7 +123,15 @@
           <button v-if="status === 'LOCKED' || status === 'CONFIRMED'" class="btn ghost flex1" @click="reopen">重新开放点餐</button>
         </view>
       </view>
-    </template>
+    
+    <view v-if="board?.menu?.status === 'READY' && board.menu.id" class="card">
+      <rate-meal :menu-id="board.menu.id" :ratings="board.ratings" :my-rating="board.myRating" @saved="load" />
+    </view>
+    <view v-if="board?.planItems?.length && !board?.menu?.items?.length" class="card muted">
+      已带出本餐计划 {{ board.planItems.length }} 道菜，确认前还可以改。
+    </view>
+
+</template>
   </view>
 </template>
 
@@ -134,6 +142,7 @@ import { dishApi, familyApi, leftoverApi, menuApi, rotationApi } from '@/api'
 import type { BoardView, DishSummary, DishVote, HintType, MemberView, MenuItemSource, MenuStatus } from '@/api/types'
 import { currentFamily, ensureSession, session } from '@/store/session'
 import { dateLabel, deadlineLabel, MEAL_LABELS, STATUS_LABELS } from '@/utils/format'
+import RateMeal from '@/components/RateMeal.vue'
 import SlotPicker from '@/components/SlotPicker.vue'
 
 interface Pick {
@@ -265,6 +274,11 @@ async function load() {
         key: key(), dishId: it.dishId ?? null, customName: it.dishId ? null : it.name, name: it.name,
         servings: it.servings, source: it.source, substituteForDishId: it.substituteForDishId ?? null,
         substituteForName: it.substituteForName, note: it.note || '',
+      }))
+    } else if (b.planItems?.length) {
+      picks.value = b.planItems.map((it) => ({
+        key: key(), dishId: it.dishId ?? null, customName: it.dishId ? null : it.name, name: it.name,
+        servings: it.servings, source: 'COOK_ADDED' as const, substituteForDishId: null, note: '来自周计划',
       }))
     } else {
       // 默认采纳「很想吃」且没人反对的菜
