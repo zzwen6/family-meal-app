@@ -1,0 +1,30 @@
+{
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "吃什么", "enablePullDownRefresh": true } },
+    { "path": "pages/dish/list", "style": { "navigationBarTitleText": "家庭菜谱", "enablePullDownRefresh": true } },
+    { "path": "pages/shopping/index", "style": { "navigationBarTitleText": "采购清单", "enablePullDownRefresh": true } },
+    { "path": "pages/me/index", "style": { "navigationBarTitleText": "我的" } },
+    { "path": "pages/wish/edit", "style": { "navigationBarTitleText": "我想吃" } },
+    { "path": "pages/dish/detail", "style": { "navigationBarTitleText": "菜谱详情" } },
+    { "path": "pages/cook/index", "style": { "navigationBarTitleText": "掌厨工作台", "enablePullDownRefresh": true } },
+    { "path": "pages/login/index", "style": { "navigationBarTitleText": "登录" } }
+  ],
+  "tabBar": {
+    "color": "#8a8a8a",
+    "selectedColor": "#e6772e",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "今晚" },
+      { "pagePath": "pages/dish/list", "text": "菜谱" },
+      { "pagePath": "pages/shopping/index", "text": "采购" },
+      { "pagePath": "pages/me/index", "text": "我的" }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "家庭点餐",
+    "navigationBarBackgroundColor": "#FFF8F1",
+    "backgroundColor": "#F6F4F1"
+  }
+}

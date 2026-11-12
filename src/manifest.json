@@ -1,0 +1,31 @@
+{
+    "name" : "家庭点餐",
+    "appid" : "",
+    "description" : "家人提前点想吃的菜，掌厨确认菜单并生成采购清单",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    /* 小程序特有相关 */
+    /* 微信小程序：appid 留空时开发者工具会用测试号；正式上传前填你自己的 AppID（个人主体即可） */
+    "mp-weixin" : {
+        "appid" : "",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "minified" : true
+        },
+        "usingComponents" : true,
+        "lazyCodeLoading" : "requiredComponents"
+    },
+    "h5" : {
+        "title" : "家庭点餐",
+        "router" : {
+            "mode" : "hash",
+            "base" : "./"
+        }
+    },
+    "uniStatistics": {  
+        "enable": false
+    },
+    "vueVersion" : "3"
+}

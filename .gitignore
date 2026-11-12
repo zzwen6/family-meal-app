@@ -1,0 +1,17 @@
+node_modules
+dist
+unpackage
+*.log
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.local
+
+# 本地环境变量（不要提交真实地址/密钥）
+.env
+.env.*
+!.env.example
+
+# 微信开发者工具的私有配置
+project.private.config.json
