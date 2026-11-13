@@ -123,6 +123,10 @@ public class LocalProxyServer extends NanoHTTPD {
                 String lower = name.toLowerCase(Locale.ROOT);
                 if (HOP_BY_HOP.contains(lower)
                         || "host".equals(lower)
+                        // WebView 页面来自 http://127.0.0.1，经本地代理后对上游是同源调用；
+                        // 转发 Origin 会被后端 CORS 当成未授权来源并返回 403。
+                        || "origin".equals(lower)
+                        || "referer".equals(lower)
                         || "content-length".equals(lower)
                         || "accept-encoding".equals(lower)
                         || "http-client-ip".equals(lower)

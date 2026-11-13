@@ -46,8 +46,8 @@ android {
         applicationId = "com.zzwen6.familymeal"
         minSdk = 24
         targetSdk = 34
-        versionCode = 100
-        versionName = "1.0.0"
+        versionCode = 101
+        versionName = "1.0.1"
         buildConfigField("String", "API_UPSTREAM", "\"$apiUpstream\"")
     }
 
