@@ -51,6 +51,7 @@ page {
 .tag.warn { background: #fff3e0; color: #d9822b; }
 .tag.danger { background: #fdecec; color: #d64545; }
 .btn {
+  box-sizing: border-box;
   background: $fm-primary;
   color: #fff;
   border-radius: 999rpx;

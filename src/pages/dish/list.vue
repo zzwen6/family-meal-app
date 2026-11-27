@@ -3,12 +3,17 @@
     <template v-if="session.ready && session.token && !currentFamily"><no-family /></template>
     <template v-else>
       <input class="input search" v-model="keyword" :placeholder="isChild ? '找你想吃的菜' : '搜菜名'" confirm-type="search" @confirm="load" />
-      <scroll-view scroll-x class="cats" :show-scrollbar="false">
-        <text class="cat" :class="{ active: !category }" @click="pick('')">全部</text>
-        <text v-for="c in categories" :key="c" class="cat" :class="{ active: category === c }" @click="pick(c)">{{ c }}</text>
-      </scroll-view>
-      <view v-if="canCook" class="btn ghost block" style="margin-bottom: 20rpx" @click="goEdit()">录入菜谱</view>
-      <view v-if="loaded && !dishes.length" class="empty">{{ isChild ? '家里还没有菜谱，让大人先加一些吧。' : '还没有菜，掌厨可以点上面的「录入菜谱」或在管理后台添加' }}</view>
+      <view class="toolbar">
+        <scroll-view scroll-x class="cats" :show-scrollbar="false">
+          <text class="cat" :class="{ active: !category }" @click="pick('')">全部</text>
+          <text v-for="c in categories" :key="c" class="cat" :class="{ active: category === c }" @click="pick(c)">{{ c }}</text>
+        </scroll-view>
+        <view v-if="canCook" class="btn ghost small add-btn" @click="goEdit()">录入菜谱</view>
+      </view>
+      <view v-if="loaded && !dishes.length" class="empty">
+        <view>{{ emptyText }}</view>
+        <view v-if="canCook" class="btn empty-cta" @click="goEdit()">录入菜谱</view>
+      </view>
       <view class="grid">
         <view v-for="d in dishes" :key="d.id" class="item" :class="{ big: isChild }" @click="open(d.id)">
           <image v-if="d.coverUrl" :src="mediaSrc(d.coverUrl)" class="cover" mode="aspectFill" />
@@ -25,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishSummary } from '@/api/types'
@@ -39,6 +44,12 @@ const categories = ref<string[]>([])
 const category = ref('')
 const keyword = ref('')
 const loaded = ref(false)
+
+const emptyText = computed(() => {
+  if (isChild.value) return '家里还没有菜谱，让大人先加一些吧。'
+  if (canCook.value) return '还没有菜，可以点下方按钮录入，或在管理后台添加'
+  return '还没有菜，请让掌厨录入或在管理后台添加'
+})
 
 async function load() {
   if (!(await ensureSession())) return
@@ -81,7 +92,10 @@ onPullDownRefresh(load)
 
 <style lang="scss" scoped>
 .search { background: #fff; }
-.cats { white-space: nowrap; margin-bottom: 20rpx; }
+.toolbar { display: flex; align-items: center; margin-bottom: 20rpx; }
+.cats { flex: 1; width: 0; white-space: nowrap; }
+.add-btn { flex-shrink: 0; margin-left: 12rpx; }
+.empty-cta { display: inline-block; margin-top: 28rpx; }
 .cat { display: inline-block; padding: 8rpx 24rpx; margin-right: 12rpx; border-radius: 999rpx; background: #fff; font-size: 26rpx; color: #555; }
 .cat.active { background: $fm-primary; color: #fff; }
 .grid { display: flex; flex-wrap: wrap; justify-content: space-between; }
