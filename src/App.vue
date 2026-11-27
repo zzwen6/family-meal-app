@@ -80,4 +80,11 @@ page {
 .seg { display: flex; background: #f3f0ec; border-radius: 999rpx; padding: 6rpx; }
 .seg-item { flex: 1; text-align: center; padding: 12rpx 0; border-radius: 999rpx; font-size: 26rpx; color: #666; }
 .seg-item.active { background: #fff; color: $fm-primary; font-weight: 600; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06); }
+.link { color: $fm-primary; font-size: 26rpx; }
+.stats-line { color: $fm-muted; font-size: 24rpx; margin: 12rpx 0 4rpx; }
+.sec-links { margin-top: 16rpx; display: flex; flex-wrap: wrap; gap: 8rpx 28rpx; }
+.hub-row { display: flex; align-items: center; justify-content: space-between; padding: 28rpx 0; border-bottom: 1rpx solid #f2f2f2; }
+.hub-row:last-child { border-bottom: none; }
+.hub-title { font-size: 30rpx; font-weight: 500; }
+.compact-banner { background: #fff; border-radius: 20rpx; padding: 20rpx 24rpx; margin-bottom: 20rpx; font-size: 26rpx; color: #555; box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03); }
 </style>

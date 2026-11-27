@@ -5,7 +5,7 @@
       <view class="card row between wrap">
         <view>
           <view class="card-title" style="margin: 0">{{ isChild ? '我们吃过什么' : '本周与统计' }}</view>
-          <view class="muted">{{ data?.from }} 至 {{ data?.to }} · 只算家里的日常饭，不算聚餐</view>
+          <view class="muted">{{ data?.from }} 至 {{ data?.to }}</view>
         </view>
         <view class="row gap">
           <text class="link" @click="shift(-7)">上一周</text>

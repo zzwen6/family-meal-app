@@ -4,19 +4,23 @@
     <view v-else class="hero ph">{{ dish.name.slice(0, 1) }}</view>
     <view class="container">
       <view class="card">
-        <view class="title">{{ dish.name }}</view>
-        <view class="row wrap" style="margin: 12rpx 0">
-          <text class="tag primary">{{ dish.category }}</text>
-          <text class="tag">{{ DIFFICULTY_LABELS[dish.difficulty] }}</text>
-          <text class="tag">约 {{ dish.durationMinutes }} 分钟</text>
+        <view class="row between" style="align-items: flex-start">
+          <view class="title flex1">{{ dish.name }}</view>
+          <text v-if="canCook" class="link" @click="edit">编辑</text>
         </view>
-        <view v-if="dish.nutrition" class="muted nutri">
-          {{ isChild ? kcalLabel(dish.nutrition.total?.kcal, true) : (kcalLabel(dish.nutrition.total?.kcal) + '（整道） / ' + kcalLabel(dish.nutrition.perServing?.kcal) + '（每人份）') }}
-          <text v-if="dish.nutrition.override"> · 掌厨填写</text>
-          <text v-else> · 按用料估算</text>
-        </view>
-        <view v-if="!isChild && dish.nutrition?.excluded?.length" class="muted">未计入：{{ dish.nutrition.excluded.join('；') }}</view>
-        <view v-if="dish.description" class="muted">{{ dish.description }}</view>
+        <view class="muted meta">{{ dish.category }} · {{ DIFFICULTY_LABELS[dish.difficulty] }} · 约 {{ dish.durationMinutes }} 分钟 · {{ servings || dish.defaultServings }} 人份</view>
+        <expand-section
+          v-if="dish.nutrition || dish.description"
+          title="营养与简介"
+          :boxed="false"
+          :hint="nutritionHint"
+        >
+          <view v-if="dish.nutrition" class="muted">
+            {{ isChild ? kcalLabel(dish.nutrition.total?.kcal, true) : (kcalLabel(dish.nutrition.total?.kcal) + '（整道） / ' + kcalLabel(dish.nutrition.perServing?.kcal) + '（每人份）') }}
+          </view>
+          <view v-if="!isChild && dish.nutrition?.excluded?.length" class="muted">未计入：{{ dish.nutrition.excluded.join('；') }}</view>
+          <view v-if="dish.description" class="muted">{{ dish.description }}</view>
+        </expand-section>
       </view>
 
       <view class="card">
@@ -59,10 +63,12 @@
           </view>
         </view>
         <view v-if="!dish.steps.length" class="muted">还没写做法</view>
-        <view v-if="dish.tips" class="tips">💡 {{ dish.tips }}</view>
       </view>
 
-      <button v-if="canCook" class="btn ghost block" style="margin-bottom: 16rpx" @click="edit">编辑菜谱</button>
+      <expand-section v-if="dish.tips" title="小贴士" :boxed="true">
+        <view class="tips">{{ dish.tips }}</view>
+      </expand-section>
+
       <button class="btn block" @click="want">我想吃这个</button>
     </view>
   </view>
@@ -70,17 +76,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishDetail } from '@/api/types'
 import { canCook, currentFamily, ensureSession, isChild } from '@/store/session'
 import { amountLabel, DIFFICULTY_LABELS, kcalLabel } from '@/utils/format'
 import { mediaSrc } from '@/utils/media'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const dish = ref<DishDetail | null>(null)
 const servings = ref(0)
 let dishId = 0
+const nutritionHint = computed(() => {
+  const d = dish.value
+  if (!d?.nutrition) return d?.description || ''
+  return isChild.value ? kcalLabel(d.nutrition.total?.kcal, true) : kcalLabel(d.nutrition.total?.kcal)
+})
 
 async function load() {
   dish.value = await dishApi.detail(currentFamily.value!.id, dishId, servings.value || undefined)
@@ -125,5 +137,5 @@ onLoad(async (q) => {
 .tips { background: #fff8e6; padding: 20rpx; border-radius: 12rpx; font-size: 26rpx; color: #8a6d1f; }
 .step-img { width: 100%; border-radius: 12rpx; margin-top: 12rpx; }
 .step-video { width: 100%; height: 360rpx; margin-top: 12rpx; }
-.nutri { margin-top: 8rpx; }
+.meta { margin-top: 10rpx; }
 </style>

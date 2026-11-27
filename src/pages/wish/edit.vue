@@ -22,7 +22,7 @@
     <view class="card row between">
       <view>
         <view>{{ simpleMode ? '今晚我不在家吃饭' : '这餐不在家吃' }}</view>
-        <view class="muted">{{ simpleMode ? '告诉家里少做一份就好' : '掌厨会少做一份' }}</view>
+        
       </view>
       <switch :checked="form.notEatingHome" color="#e6772e" @change="(e: any) => (form.notEatingHome = e.detail.value)" />
     </view>
@@ -43,7 +43,7 @@
           <text class="chip small" :class="{ active: !category }" @click="category = ''">全部</text>
           <text v-for="c in categories" :key="c" class="chip small" :class="{ active: category === c }" @click="category = c">{{ c }}</text>
         </view>
-        <view v-if="!filteredDishes.length" class="muted">菜谱里还没有菜，掌厨可以在管理后台添加。</view>
+        <view v-if="!filteredDishes.length" class="muted">菜谱里还没有菜</view>
         <view
           v-for="d in filteredDishes"
           :key="d.id"

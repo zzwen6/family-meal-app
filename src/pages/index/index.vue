@@ -22,50 +22,40 @@
 
       <view v-if="board" class="card status-card">
         <view class="row between">
-          <view>
+          <view class="flex1">
             <view class="big">{{ dateLabel(board.mealDate) }}{{ MEAL_LABELS[board.mealType] }}</view>
-            <view class="muted">
-              <text v-if="status === 'OPEN'">{{ isChild ? (countdown + '前告诉家里你想吃什么') : (countdown + '截止（' + deadlineLabel(board.deadline) + '）') }}</text>
-              <text v-else-if="status === 'LOCKED'">{{ isChild ? '点餐已经截止啦，等大人定菜单' : '点餐已截止，等掌厨定菜单' }}</text>
-              <text v-else-if="status === 'CONFIRMED'">菜单已定 · {{ board.menu?.confirmedByName || '掌厨' }}<text v-if="board.proxyConfirm">（代做）</text></text>
-              <text v-else>{{ isChild ? '开饭啦，快去吃！吃完记得打个分～' : '开饭啦，快去吃！' }}</text>
-            </view>
-            <view v-if="board.assignedCook" class="muted cook-line">今晚掌厨：{{ board.assignedCook.displayName }}</view>
+            <view class="muted">{{ statusLine }}</view>
+            <view v-if="board.assignedCook" class="muted cook-line">掌厨：{{ board.assignedCook.displayName }}</view>
           </view>
           <text class="tag" :class="statusClass">{{ STATUS_LABELS[status] }}</text>
         </view>
-        <view class="row gap stats">
-          <view class="stat"><view class="num">{{ board.headcount }}</view><view class="muted">在家吃</view></view>
-          <view class="stat"><view class="num">{{ submittedCount }}</view><view class="muted">已点</view></view>
-          <view class="stat"><view class="num">{{ board.votes.length }}</view><view class="muted">道想吃</view></view>
-        </view>
-        <view class="row gap actions">
-          <button class="btn" :disabled="!board.canEditWish" @click="goWish()">{{ isChild ? '我想吃这个！' : '我想吃…' }}</button>
-          <button v-if="board.canRunKitchen" class="btn ghost" @click="goCook">掌厨工作台</button>
-          <button v-if="!isChild && wards.length" class="btn ghost" @click="goHelp">帮孩子点餐</button>
-        </view>
-        <!-- #ifdef MP-WEIXIN -->
-        <view v-if="status !== 'READY'" class="remind link" @click="remind">🔔 提醒我开饭（微信消息）</view>
-        <!-- #endif -->
-      </view>
-
-      <view v-if="board?.hints?.length" class="card hints">
-        <view class="card-title">温馨提示</view>
-        <view v-for="h in board.hints" :key="h.type + (h.dishName || '') + (h.memberId || '') + (h.leftoverId || '')" class="hint" :class="hintClass(h.type)">
-          {{ h.message }}
+        <view class="stats-line">在家吃 {{ board.headcount }} · 已点 {{ submittedCount }} · {{ board.votes.length }} 道想吃</view>
+        <button v-if="board.canEditWish" class="btn block hero-btn" @click="goWish()">{{ isChild ? '我想吃这个！' : '我想吃…' }}</button>
+        <view v-if="!isChild && (board.canRunKitchen || wards.length)" class="sec-links">
+          <text v-if="board.canRunKitchen" class="link" @click="goCook">掌厨工作台</text>
+          <text v-if="wards.length" class="link" @click="goHelp">帮孩子点餐</text>
+          <!-- #ifdef MP-WEIXIN -->
+          <text v-if="status !== 'READY'" class="link" @click="remind">提醒开饭</text>
+          <!-- #endif -->
         </view>
       </view>
 
-      <view v-if="unusedLeftovers.length" class="card">
-        <view class="card-title">有剩菜可以先吃掉</view>
-        <view v-for="l in unusedLeftovers" :key="l.id" class="muted leftover-line">
-          {{ l.name }}<text v-if="l.amount"> {{ l.amount }}{{ l.unit || '' }}</text><text v-if="l.expiresOn"> · 大约保鲜到 {{ l.expiresOn }}</text>
+      <view v-if="board?.hints?.length" class="compact-banner">
+        <view v-for="h in visibleHints" :key="h.type + (h.dishName || '') + (h.memberId || '') + (h.leftoverId || '')" class="hint" :class="hintClass(h.type)">{{ h.message }}</view>
+        <text v-if="board.hints.length > 1" class="link" @click="hintsOpen = !hintsOpen">{{ hintsOpen ? '收起' : ('还有 ' + (board.hints.length - 1) + ' 条') }}</text>
+      </view>
+
+      <view v-if="unusedLeftovers.length" class="compact-banner" @click="leftoverOpen = !leftoverOpen">
+        剩菜可先吃：{{ leftoverSummary }}
+        <view v-if="leftoverOpen">
+          <view v-for="l in unusedLeftovers" :key="l.id" class="muted leftover-line">
+            {{ l.name }}<text v-if="l.amount"> {{ l.amount }}{{ l.unit || '' }}</text><text v-if="l.expiresOn"> · 保鲜到 {{ l.expiresOn }}</text>
+          </view>
         </view>
       </view>
 
       <view v-if="board?.planItems?.length && !board?.menu?.items?.length" class="card">
         <view class="card-title">本餐计划</view>
-        <view class="muted" style="margin-bottom: 12rpx">{{ isChild ? '家里打算做这些，还没最终定下来。' : '模板预填的计划，掌厨确认时会带出来，还可以改。' }}</view>
         <view v-for="it in board.planItems" :key="it.id" class="menu-item" @click="it.dishId && goDish(it.dishId, it.servings)">
           <image v-if="it.coverUrl" :src="mediaSrc(it.coverUrl)" class="cover" mode="aspectFill" />
           <view v-else class="cover placeholder">{{ it.name.slice(0, 1) }}</view>
@@ -78,7 +68,7 @@
 
       <view v-if="board?.menu?.items?.length" class="card">
         <view class="card-title">
-          <text>{{ status === 'READY' ? (isChild ? '今天吃这些哟' : '今天吃这些') : '确认的菜单' }}</text>
+          <text>{{ status === 'READY' ? (isChild ? '今天吃这些哟' : '今天吃这些') : '菜单' }}</text>
           <text v-if="!isChild" class="link" @click="goShopping">采购清单 ›</text>
         </view>
         <view v-for="it in board.menu.items" :key="it.id" class="menu-item" @click="it.dishId && goDish(it.dishId, it.servings)">
@@ -91,15 +81,15 @@
               <text v-if="it.durationMinutes"> · 约 {{ it.durationMinutes }} 分钟</text>
               <text v-if="it.substituteForName"> · 替代 {{ it.substituteForName }}</text>
             </view>
-            <view v-if="it.note" class="muted">{{ it.note }}</view>
           </view>
           <text v-if="it.source === 'WISH'" class="tag primary">家人点的</text>
         </view>
-        <view v-if="board.menu.nutrition" class="muted note">
-          {{ isChild ? kcalLabel(board.menu.nutrition.total?.kcal, true) : ('本餐大约 ' + kcalLabel(board.menu.nutrition.total?.kcal).replace('约 ','') + '（按菜谱用料估算，不是检测）') }}
+        <view v-if="board.menu.nutrition || board.menu.note" class="muted note">
+          <text v-if="board.menu.nutrition">{{ isChild ? kcalLabel(board.menu.nutrition.total?.kcal, true) : ('约 ' + kcalLabel(board.menu.nutrition.total?.kcal).replace('约 ','')) }}</text>
+          <text v-if="!isChild && board.menu.nutrition?.excluded?.length" class="link" @click="nutriOpen = !nutriOpen"> 详情</text>
+          <view v-if="nutriOpen && board.menu.nutrition?.excluded?.length">未计入：{{ board.menu.nutrition.excluded.join('；') }}</view>
+          <view v-if="board.menu.note">{{ board.menu.note }}</view>
         </view>
-        <view v-if="!isChild && board.menu.nutrition?.excluded?.length" class="muted">未计入：{{ board.menu.nutrition.excluded.join('；') }}</view>
-        <view v-if="board.menu.note" class="muted note">📝 {{ board.menu.note }}</view>
       </view>
 
       <view v-if="status === 'READY' && board?.menu?.id" class="card">
@@ -108,41 +98,32 @@
 
       <view v-if="board" class="card">
         <view class="card-title"><text>{{ isChild ? '我点的' : '我的意愿' }}</text></view>
-        <view v-if="!myWishes.length" class="muted">还没点，{{ board.canEditWish ? '点一个吧' : '这餐已经不能点了' }}</view>
+        <view v-if="!myWishes.length" class="muted">{{ board.canEditWish ? '还没点' : '这餐已经不能点了' }}</view>
         <view v-for="w in myWishes" :key="w.id" class="wish row between">
           <view>
-            <text v-if="w.notEatingHome">🚪 这餐不在家吃</text>
+            <text v-if="w.notEatingHome">这餐不在家吃</text>
             <text v-else>{{ w.dishName || w.freeText }}</text>
             <text v-if="!w.notEatingHome" class="tag" :class="intensityClass(w.intensity)" style="margin-left: 12rpx">{{ INTENSITY_LABELS[w.intensity] }}</text>
-            <text v-if="!w.notEatingHome && w.servings > 1" class="muted"> × {{ w.servings }}</text>
           </view>
           <text v-if="w.editable" class="link" @click="goWish(w.id)">修改</text>
         </view>
       </view>
 
-      <view v-if="board" class="card">
-        <view class="card-title"><text>全家想吃</text></view>
+      <expand-section
+        v-if="board"
+        title="全家想吃"
+        :hint="familyWishHint"
+        :default-open="!board.menu?.items?.length"
+      >
         <view v-if="!board.votes.length" class="muted">还没人点</view>
-        <view v-for="v in board.votes" :key="v.name" class="vote">
-          <view class="row between">
-            <text class="name">{{ v.name }}</text>
-            <view>
-              <text v-if="v.wantCount" class="tag primary">很想吃 {{ v.wantCount }}</text>
-              <text v-if="v.okCount" class="tag">都可以 {{ v.okCount }}</text>
-              <text v-if="v.avoidCount" class="tag danger">别做 {{ v.avoidCount }}</text>
-            </view>
-          </view>
-          <view v-if="v.wantBy.length" class="muted">{{ v.wantBy.join('、') }} 想吃</view>
+        <view v-for="v in board.votes" :key="v.name" class="wish row between">
+          <text class="name">{{ v.name }}</text>
+          <text v-if="v.wantCount" class="tag primary">很想吃 {{ v.wantCount }}</text>
+          <text v-else-if="v.avoidCount" class="tag danger">别做 {{ v.avoidCount }}</text>
+          <text v-else-if="v.okCount" class="tag">都可以 {{ v.okCount }}</text>
         </view>
-        <view class="members">
-          <text
-            v-for="m in board.members"
-            :key="m.memberId"
-            class="tag"
-            :class="m.notEatingHome ? '' : m.submitted ? 'success' : 'warn'"
-          >{{ m.displayName }}{{ m.notEatingHome ? ' 不在家' : m.submitted ? ' ✓' : ' 未点' }}</text>
-        </view>
-      </view>
+        <view v-if="pendingMembers" class="muted members">{{ pendingMembers }}</view>
+      </expand-section>
 
       <view v-if="latestNotice" class="card notice">
         🔔 {{ latestNotice.title }}：{{ latestNotice.content }}
@@ -159,12 +140,13 @@ import { familyApi, gatheringApi, menuApi } from '@/api'
 import type { BoardView, FamilyGatheringSlot, Intensity, MemberView, MenuStatus, NotificationView } from '@/api/types'
 import { applyTabBar, currentFamily, ensureSession, isChild, session } from '@/store/session'
 import type { HintType } from '@/api/types'
-import { dateLabel, deadlineLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, kcalLabel, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
+import { dateLabel, GATHERING_STATUS_LABELS, INTENSITY_LABELS, kcalLabel, MEAL_LABELS, parseLocal, STATUS_LABELS } from '@/utils/format'
 import { mediaSrc } from '@/utils/media'
 import { requestDinnerReminder } from '@/utils/subscribe'
 import SlotPicker from '@/components/SlotPicker.vue'
 import NoFamily from '@/components/NoFamily.vue'
 import RateMeal from '@/components/RateMeal.vue'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const board = ref<BoardView | null>(null)
 const latestNotice = ref<NotificationView | null>(null)
@@ -180,6 +162,44 @@ const submittedCount = computed(() => board.value?.members.filter((m) => m.submi
 const unusedLeftovers = computed(() => (isChild.value ? [] : (board.value?.leftovers || []).filter((l) => !l.used)))
 const members = ref<MemberView[]>([])
 const wards = computed(() => members.value.filter((m) => m.role === 'CHILD' && m.guardianMemberId === currentFamily.value?.myMemberId))
+const hintsOpen = ref(false)
+const leftoverOpen = ref(false)
+const nutriOpen = ref(false)
+const visibleHints = computed(() => {
+  const all = board.value?.hints || []
+  if (hintsOpen.value || all.length <= 1) return all
+  return all.slice(0, 1)
+})
+const leftoverSummary = computed(() =>
+  unusedLeftovers.value.map((l) => l.name + (l.amount ? ` ${l.amount}${l.unit || ''}` : '')).join('、'),
+)
+const familyWishHint = computed(() => {
+  const votes = board.value?.votes || []
+  if (!votes.length) return '还没人点'
+  return votes.map((v) => v.name).slice(0, 4).join('、') + (votes.length > 4 ? '…' : '')
+})
+const pendingMembers = computed(() => {
+  const ms = board.value?.members || []
+  const pending = ms.filter((m) => !m.submitted && !m.notEatingHome).map((m) => m.displayName)
+  const away = ms.filter((m) => m.notEatingHome).map((m) => m.displayName)
+  const parts: string[] = []
+  if (pending.length) parts.push('未点：' + pending.join('、'))
+  if (away.length) parts.push('不在家：' + away.join('、'))
+  return parts.join(' · ')
+})
+const statusLine = computed(() => {
+  if (status.value === 'OPEN') {
+    return isChild.value
+      ? (countdown.value ? countdown.value + '前告诉家里' : '还可以点')
+      : (countdown.value ? countdown.value + '截止' : '已到截止时间')
+  }
+  if (status.value === 'LOCKED') return isChild.value ? '点餐已截止，等大人定菜单' : '点餐已截止，等掌厨定菜单'
+  if (status.value === 'CONFIRMED') {
+    const who = board.value?.menu?.confirmedByName || '掌厨'
+    return '菜单已定 · ' + who + (board.value?.proxyConfirm ? '（代做）' : '')
+  }
+  return isChild.value ? '开饭啦' : '开饭啦'
+})
 
 function hintClass(t: HintType) {
   return { AVOID: 'danger', FATIGUE: 'warn', FAIRNESS: '', LEFTOVER: '' }[t]
@@ -268,20 +288,16 @@ onPullDownRefresh(load)
 </script>
 
 <style lang="scss" scoped>
-.cook-line { margin-top: 8rpx; }
-.hint { padding: 12rpx 0; font-size: 26rpx; line-height: 1.5; border-bottom: 1rpx solid #f2f2f2; }
-.hint:last-child { border-bottom: none; }
+.cook-line { margin-top: 4rpx; }
+.hint { padding: 4rpx 0; line-height: 1.5; }
 .hint.danger { color: #c0392b; }
 .hint.warn { color: #b4610f; }
-.leftover-line { padding: 8rpx 0; }
-.hello { margin: 8rpx 4rpx 24rpx; }
+.leftover-line { padding: 6rpx 0 0; }
+.hello { margin: 4rpx 4rpx 16rpx; }
 .family { font-size: 40rpx; font-weight: 700; }
 .big { font-size: 36rpx; font-weight: 600; margin-bottom: 6rpx; }
-.stats { margin: 28rpx 0; }
-.stat { flex: 1; text-align: center; background: $fm-bg; border-radius: 16rpx; padding: 16rpx 0; }
-.num { font-size: 40rpx; font-weight: 700; color: $fm-primary; }
-.actions .btn { flex: 1; margin: 0; }
-.link { color: $fm-primary; font-size: 26rpx; font-weight: normal; }
+.hero-btn { margin-top: 20rpx; }
+.link { font-weight: normal; }
 .menu-item { display: flex; align-items: center; gap: 20rpx; padding: 16rpx 0; border-bottom: 1rpx solid #f2f2f2; }
 .menu-item:last-of-type { border-bottom: none; }
 .cover { width: 96rpx; height: 96rpx; border-radius: 16rpx; flex-shrink: 0; }
@@ -295,7 +311,6 @@ onPullDownRefresh(load)
 .notice { font-size: 26rpx; color: #666; }
 .gathering-tip { background: #fff4e5; border: 2rpx solid #ffd9b0; }
 .gt-title { font-size: 28rpx; font-weight: 600; color: #b4610f; margin-bottom: 6rpx; }
-.remind { margin-top: 20rpx; text-align: center; }
 .child { font-size: 30rpx; }
 .child .family { font-size: 48rpx; }
 .child .big { font-size: 42rpx; }

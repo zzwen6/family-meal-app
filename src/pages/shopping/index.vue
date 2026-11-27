@@ -4,7 +4,6 @@
     <template v-else-if="isChild">
       <view class="card">
         <view class="card-title">我们吃过什么</view>
-        <view class="muted">这是家里最近做过的饭，开饭以后可以去「今晚」给它打分。</view>
       </view>
       <view v-if="!childMeals.length" class="card muted">这一周还没有记下吃过的饭。</view>
       <view v-for="d in childMeals" :key="d.date + d.mealType" class="card">
@@ -19,7 +18,6 @@
       <slot-picker @change="load" />
       <view v-if="loaded && !list" class="card empty">
         <view>{{ dateLabel(session.date) }}{{ MEAL_LABELS[session.mealType] }}还没有确认菜单</view>
-        <view class="muted" style="margin-top: 12rpx">掌厨确认菜单后，这里会自动生成采购清单</view>
       </view>
       <template v-if="list">
         <view class="card">
@@ -43,8 +41,7 @@
             <view class="checkbox" :class="{ on: it.purchased }">{{ it.purchased ? '✓' : '' }}</view>
             <view class="flex1">
               <view class="name">{{ it.name }}</view>
-              <view v-if="it.sourceDishes" class="muted">{{ it.sourceDishes }}</view>
-              <view v-if="it.note" class="muted note">{{ it.note }}</view>
+              <view v-if="it.sourceDishes || it.note" class="muted">{{ it.sourceDishes }}<text v-if="it.note"> · {{ it.note }}</text></view>
             </view>
             <text class="amount">{{ amountLabel(it.amount, it.unit) }}</text>
             <text v-if="canCook" class="op" @click.stop="setToBuy(it, false)">不买</text>
@@ -58,12 +55,11 @@
         </view>
 
         <view v-if="list.stapleItems.length" class="card">
-          <view class="card-title"><text>不必买（常备 / 家里已有）（默认不买）</text></view>
+          <view class="card-title"><text>家里已有 / 常备</text></view>
           <view v-for="it in list.stapleItems" :key="it.id" class="item staple">
             <view class="flex1">
               <view class="name">{{ it.name }}</view>
-              <view v-if="it.sourceDishes" class="muted">{{ it.sourceDishes }}</view>
-              <view v-if="it.note" class="muted note">{{ it.note }}</view>
+              <view v-if="it.sourceDishes || it.note" class="muted">{{ it.sourceDishes }}<text v-if="it.note"> · {{ it.note }}</text></view>
             </view>
             <text class="amount">{{ amountLabel(it.amount, it.unit) }}</text>
             <text v-if="canCook" class="op add-back" @click="setToBuy(it, true)">要买</text>

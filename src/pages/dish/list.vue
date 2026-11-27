@@ -21,7 +21,7 @@
           <view class="info">
             <view class="name">{{ d.name }}</view>
             <view v-if="!isChild" class="muted">{{ DIFFICULTY_LABELS[d.difficulty] }} · {{ d.durationMinutes }} 分钟 · {{ d.defaultServings }} 人份</view>
-            <view v-else class="muted">点一下告诉家里我想吃 · <text class="link" @click.stop="openDetail(d.id)">看做法</text></view>
+            <view v-else class="muted"><text class="link" @click.stop="openDetail(d.id)">看做法</text></view>
           </view>
         </view>
       </view>
@@ -46,9 +46,9 @@ const keyword = ref('')
 const loaded = ref(false)
 
 const emptyText = computed(() => {
-  if (isChild.value) return '家里还没有菜谱，让大人先加一些吧。'
-  if (canCook.value) return '还没有菜，可以点下方按钮录入，或在管理后台添加'
-  return '还没有菜，请让掌厨录入或在管理后台添加'
+  if (isChild.value) return '还没有菜谱，让大人先加一些吧'
+  if (canCook.value) return '还没有菜'
+  return '还没有菜，请让掌厨添加'
 })
 
 async function load() {

@@ -1,7 +1,7 @@
 <template>
   <view class="container">
     <view v-if="copyFrom" class="card copy-tip">
-      👥 复用「{{ copyFrom.title }}」的 {{ copyFrom.participants.length - 1 }} 位参与者：新的一场会把他们设为「待定」，等大家重新应邀。
+      复用「{{ copyFrom.title }}」的 {{ copyFrom.participants.length - 1 }} 位参与者，将设为待定。
     </view>
 
     <view class="card">
@@ -38,7 +38,7 @@
       <view class="row between">
         <view>
           <view>点菜截止时间</view>
-          <view class="muted">截止后大家不能再改想吃 / 投票 / 认领，你仍可以定菜单</view>
+          <view class="muted">截止后大家不能再改点菜</view>
         </view>
         <switch :checked="hasDeadline" color="#e6772e" @change="(e: any) => (hasDeadline = e.detail.value)" />
       </view>
@@ -67,7 +67,7 @@
       <view class="row between">
         <view>
           <view>在家庭日历上占位</view>
-          <view class="muted">家人会看到这餐有一场聚餐（只看到标题），避免和家里的饭冲突；客人不会因此看到家里的任何数据</view>
+          <view class="muted">家人只会看到标题，避免和家里的饭冲突</view>
         </view>
         <switch :checked="placeInFamily" color="#e6772e" @change="(e: any) => (placeInFamily = e.detail.value)" />
       </view>

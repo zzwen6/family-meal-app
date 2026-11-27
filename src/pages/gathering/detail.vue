@@ -22,14 +22,8 @@
           <text v-if="g.deadlineAt" class="tag" :class="g.canEditWishes ? '' : 'warn'">{{ deadlineLabel(g.deadlineAt) }} 截止点菜</text>
         </view>
         <view v-if="g.note" class="muted line">📝 {{ g.note }}</view>
-        <view class="muted line mode-hint">{{ MODE_HINTS[g.mode] }}</view>
-        <view class="row gap stats">
-          <view class="stat"><view class="num">{{ g.headcount }}</view><view class="muted">人来</view></view>
-          <view class="stat"><view class="num">{{ g.yesCount }}</view><view class="muted">位确认</view></view>
-          <view class="stat"><view class="num">{{ g.maybeCount }}</view><view class="muted">待定</view></view>
-          <view class="stat"><view class="num">{{ g.noCount }}</view><view class="muted">不来</view></view>
-        </view>
-        <view v-if="closed" class="muted closed-tip">这场已经散场，只能查看，不能再修改。</view>
+        <view class="stats-line">{{ g.headcount }} 人来 · {{ g.yesCount }} 位确认 · {{ g.maybeCount }} 待定 · {{ g.noCount }} 不来</view>
+        <view v-if="closed" class="muted closed-tip">已散场，只能查看</view>
       </view>
 
       <!-- 我的应邀 -->
@@ -65,7 +59,6 @@
       <!-- 邀请 -->
       <view v-if="g.inviteToken" class="card">
         <view class="card-title">邀请大家</view>
-        <view class="muted">对方打开后登录即可应邀，不会加入你的家庭，也看不到你家的菜谱和日常菜单。</view>
         <view class="row gap line">
           <!-- #ifdef MP-WEIXIN -->
           <button class="btn flex1" open-type="share">发给微信好友 / 群</button>
@@ -73,8 +66,7 @@
           <button class="btn ghost flex1" @click="copyInvite">复制邀请链接</button>
         </view>
         <view v-if="g.host" class="add-guest">
-          <view class="muted">有人没有微信 / 账号？帮他登记一下：</view>
-          <view class="row gap">
+                    <view class="row gap">
             <input class="input flex1" v-model="guestName" placeholder="称呼，比如：外婆" maxlength="64" />
             <button class="btn small" @click="addGuest">登记</button>
           </view>
@@ -169,7 +161,7 @@
       <view v-if="g.menu.length" class="card">
         <view class="card-title"><text>{{ g.readyAt ? '开饭啦，今天吃这些' : '确认的菜单' }}</text></view>
         <view v-if="g.headcountChanged" class="tip warn-tip">
-          确认菜单时是 {{ g.confirmedHeadcount }} 人，现在 {{ g.headcount }} 人。按人数算的份量和采购用量已自动按新人数换算。
+          人数已从 {{ g.confirmedHeadcount }} 变为 {{ g.headcount }}，份量已按新人数换算。
         </view>
         <view v-for="m in g.menu" :key="m.id" class="menu-item row between">
           <view class="flex1">
@@ -191,8 +183,7 @@
           <text class="link" @click="toggleEditor">{{ editor ? '收起' : '展开' }}</text>
         </view>
         <template v-if="editor">
-          <view class="muted">勾选要做的菜；份数留空就按出席总人数（人数变了会自动跟着变）。</view>
-          <view v-for="(c, i) in candidates" :key="i" class="cand row">
+                    <view v-for="(c, i) in candidates" :key="i" class="cand row">
             <switch :checked="c.picked" color="#e6772e" @change="(e: any) => (c.picked = e.detail.value)" style="transform: scale(0.8)" />
             <view class="flex1">
               <input v-if="c.custom" class="input slim" v-model="c.dishName" placeholder="菜名" maxlength="64" />
@@ -212,16 +203,15 @@
           <text>采购清单</text>
           <text v-if="shop" class="muted">{{ shop.purchasedCount }}/{{ shop.total }} 已买 · 按 {{ shop.headcount }} 人</text>
         </view>
-        <view v-if="shop && !shop.items.length" class="muted">还没有采购项。聚餐的菜是临时写的菜名，不套用家里的菜谱，请手动加。</view>
+        <view v-if="shop && !shop.items.length" class="muted">还没有采购项，可以手动加</view>
         <view v-for="it in shop?.items || []" :key="it.id" class="shop-item row between">
           <view class="row flex1" @click="g.host && !closed && togglePurchased(it.id, !it.purchased)">
             <text class="box" :class="{ on: it.purchased }">{{ it.purchased ? '✓' : '' }}</text>
             <view class="flex1">
               <view :class="{ done: it.purchased }">{{ it.name }} <text class="amount">{{ amountLabel(it.scaledAmount, it.unit) }}</text></view>
-              <view class="muted">
-                <text v-if="it.baseServings">{{ it.baseServings }} 人份 {{ amountLabel(it.amount, it.unit) }}，按 {{ shop?.headcount }} 人换算</text>
-                <text v-if="it.forDish"> · 用于 {{ it.forDish }}</text>
-                <text v-if="it.note"> · {{ it.note }}</text>
+              <view v-if="it.forDish || it.note" class="muted">
+                <text v-if="it.forDish">{{ it.forDish }}</text>
+                <text v-if="it.note">{{ it.forDish ? ' · ' : '' }}{{ it.note }}</text>
               </view>
             </view>
           </view>
@@ -246,24 +236,24 @@
       </view>
 
       <!-- 通知 -->
-      <view v-if="notices.length" class="card">
-        <view class="card-title">本场通知</view>
+      <expand-section v-if="notices.length" title="本场通知" :hint="notices[0].title">
         <view v-for="n in notices" :key="n.id" class="notice">
           <view>{{ n.title }}</view>
           <view class="muted">{{ n.content }} · {{ n.createdAt.replace('T', ' ').slice(5, 16) }}</view>
         </view>
-      </view>
+      </expand-section>
 
       <!-- 发起人操作 -->
       <view v-if="g.host" class="card">
-        <view class="card-title">发起人操作</view>
-        <view class="row gap wrap ops">
-          <button v-if="g.status === 'CONFIRMED' && !g.readyAt" class="btn" @click="ready">🍽 开饭啦</button>
-          <button v-if="g.status === 'CONFIRMED' && !g.readyAt" class="btn ghost" @click="reopen">重新开放点菜</button>
-          <button v-if="!closed" class="btn ghost" @click="edit">编辑信息</button>
-          <button class="btn ghost" @click="copy">复用这波人</button>
-          <button v-if="!closed" class="btn ghost danger" @click="close">散场</button>
-        </view>
+        <button v-if="g.status === 'CONFIRMED' && !g.readyAt" class="btn block" @click="ready">开饭啦</button>
+        <expand-section title="更多操作" :boxed="false">
+          <view class="sec-links">
+            <text v-if="g.status === 'CONFIRMED' && !g.readyAt" class="link" @click="reopen">重新开放点菜</text>
+            <text v-if="!closed" class="link" @click="edit">编辑信息</text>
+            <text class="link" @click="copy">复用这波人</text>
+            <text v-if="!closed" class="link danger" @click="close">散场</text>
+          </view>
+        </expand-section>
       </view>
     </template>
     <view v-else class="empty">加载中…</view>
@@ -284,6 +274,7 @@ import {
 } from '@/utils/format'
 import { requestDinnerReminder } from '@/utils/subscribe'
 import { inviteLink, sharePath } from '@/utils/invite'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const rsvps: Rsvp[] = ['YES', 'MAYBE', 'NO']
 const id = ref(0)
@@ -591,4 +582,5 @@ onShareAppMessage(() => {
 .notice { padding: 14rpx 0; border-bottom: 1rpx solid #f2f2f2; }
 .ops .btn { margin: 0 0 16rpx; }
 .btn.ghost.danger { color: #d64545; border-color: #d64545; }
+.link.danger { color: #d64545; }
 </style>

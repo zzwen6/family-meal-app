@@ -28,15 +28,15 @@
 
     <view v-if="canGenerate" class="card">
       <button class="btn block" :loading="busy" @click="generate">生成本周安排</button>
-      <view class="muted" style="margin-top: 12rpx">按谁做得少、较久没做、再按下面的顺序填空档，不会覆盖已经手工指定的。</view>
+      <view class="muted" style="margin-top: 12rpx">不会覆盖已经手工指定的安排</view>
     </view>
 
-    <view v-if="rotation" class="card">
-      <view class="card-title">轮换设置</view>
+    <expand-section
+      v-if="rotation"
+      title="轮换设置"
+      :hint="(rotation.enabled ? '已启用' : '未启用') + ' · ' + (rotation.members.map((m) => m.displayName).join('、') || '还没有人')"
+    >
       <view class="muted">适用餐次：{{ rotation.mealTypes.map((t) => MEAL_LABELS[t]).join('、') || '未设置' }}</view>
-      <view class="muted">参与：{{ rotation.members.map((m) => m.displayName).join('、') || '还没有人' }}</view>
-      <view class="muted">自动安排：{{ rotation.enabled ? '已启用' : '未启用' }}（生成安排仍可手动点上面的按钮）</view>
-
       <template v-if="isAdmin">
         <view class="muted label">适用餐次</view>
         <view class="row wrap">
@@ -58,7 +58,7 @@
         </view>
         <button class="btn block" style="margin-top: 24rpx" @click="save">保存设置</button>
       </template>
-    </view>
+    </expand-section>
   </view>
 </template>
 
@@ -69,6 +69,7 @@ import { familyApi, rotationApi } from '@/api'
 import type { AssignmentView, MealType, MemberView, RotationView } from '@/api/types'
 import { canCook, currentFamily, ensureSession, isAdmin, session } from '@/store/session'
 import { addDays, dateLabel, fmtDate, MEAL_LABELS, MEAL_TYPES } from '@/utils/format'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const rotation = ref<RotationView | null>(null)
 const assignments = ref<AssignmentView[]>([])

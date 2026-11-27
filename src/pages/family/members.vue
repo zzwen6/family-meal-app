@@ -2,8 +2,7 @@
   <view class="container">
     <view class="card">
       <view class="card-title">家人与孩子</view>
-      <view class="muted">可以把孩子设为「小朋友」，指定监护人。监护人（普通成员也可以）能帮孩子点餐和评价。</view>
-      <button v-if="isAdmin" class="btn block" style="margin-top: 16rpx" @click="openCreate">给孩子或老人建账号</button>
+      <button v-if="isAdmin" class="btn block" @click="openCreate">给孩子或老人建账号</button>
     </view>
 
     <view v-for="m in members" :key="m.id" class="card">

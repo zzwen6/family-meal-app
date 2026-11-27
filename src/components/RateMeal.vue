@@ -1,8 +1,7 @@
 <template>
   <view v-if="menuId" class="rate-box">
     <view class="card-title">{{ title }}</view>
-    <view class="muted" style="margin-bottom: 16rpx">开饭以后给这餐打个分，1 到 5 颗星，写一句也可以。</view>
-    <view class="row stars">
+        <view class="row stars">
       <text
         v-for="n in 5"
         :key="n"

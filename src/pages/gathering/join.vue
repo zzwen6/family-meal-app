@@ -16,7 +16,6 @@
           <text class="tag primary">{{ MODE_LABELS[p.mode] }}</text>
           <text v-if="p.deadlineAt" class="tag">{{ deadlineLabel(p.deadlineAt) }} 截止点菜</text>
         </view>
-        <view class="muted line hint">{{ MODE_HINTS[p.mode] }}</view>
       </view>
 
       <view v-if="!p.joinable" class="card center">
@@ -45,7 +44,6 @@
         <input class="input line" v-model="form.guestName" placeholder="怎么称呼你" maxlength="64" />
         <input class="input" v-model="form.dietaryNotes" placeholder="忌口 / 过敏（可选，只有发起人能看到）" maxlength="255" />
         <button class="btn block" :loading="busy" @click="join">加入聚餐</button>
-        <view class="muted tip">加入后只是这场聚餐的参与者，不会加入任何家庭，也看不到别人家的菜谱和日常菜单。</view>
       </view>
     </template>
     <view v-else class="empty">加载中…</view>

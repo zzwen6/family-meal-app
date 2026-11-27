@@ -4,7 +4,7 @@
     <template v-else>
       <view class="card">
         <view class="card-title">周菜单模板</view>
-        <view class="muted">把一周各天各餐的菜存下来，应用到某周作为计划。掌厨确认时会带出这些菜，还可以改。已确认或已开饭的餐次不会被覆盖。</view>
+        
         <view class="row gap" style="margin-top: 20rpx">
           <button v-if="canCook" class="btn small flex1" @click="goEdit()">新建模板</button>
           <button v-if="canCook" class="btn ghost small flex1" @click="fromLast">把上周另存为模板</button>

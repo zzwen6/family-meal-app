@@ -12,33 +12,45 @@
     </view>
 
     <view v-if="currentFamily && !isChild" class="card">
-      <view class="card-title">家庭日常</view>
-      <view class="muted">掌厨轮换、本周谁做饭、周菜单模板，以及家里的库存和剩菜。</view>
-      <view class="row gap gathering-actions wrap">
-        <button class="btn ghost small flex1" @click="goStats">本周与统计</button>
-        <button v-if="canCook" class="btn ghost small flex1" @click="goTemplates">周菜单模板</button>
+      <view class="hub-row" @click="goStats">
+        <view class="hub-title">本周与统计</view>
+        <text class="muted">›</text>
       </view>
-      <view class="row gap gathering-actions wrap">
-        <button class="btn ghost small flex1" @click="goRotation">掌厨安排</button>
-        <button class="btn ghost small flex1" @click="goInventory">库存和剩菜</button>
+      <view v-if="canCook" class="hub-row" @click="goTemplates">
+        <view class="hub-title">周菜单模板</view>
+        <text class="muted">›</text>
       </view>
-      <view v-if="isAdmin || wards.length" class="row gap gathering-actions">
-        <button class="btn ghost small flex1" @click="goMembers">家人与孩子</button>
+      <view class="hub-row" @click="goRotation">
+        <view class="hub-title">掌厨安排</view>
+        <text class="muted">›</text>
+      </view>
+      <view class="hub-row" @click="goInventory">
+        <view class="hub-title">库存和剩菜</view>
+        <text class="muted">›</text>
+      </view>
+      <view v-if="isAdmin || wards.length" class="hub-row" @click="goMembers">
+        <view class="hub-title">家人与孩子</view>
+        <text class="muted">›</text>
       </view>
     </view>
 
     <view v-if="currentFamily && isChild" class="card">
-      <view class="card-title">我们吃过什么</view>
-      <view class="muted">看看这周家里做了哪些菜，开饭以后还可以给这顿打个分。</view>
-      <button class="btn block" style="margin-top: 16rpx" @click="goStats">去看看</button>
+      <view class="hub-row" @click="goStats">
+        <view class="hub-title">我们吃过什么</view>
+        <text class="muted">›</text>
+      </view>
     </view>
 
     <view v-if="!isChild" class="card">
-      <view class="card-title">临时聚餐</view>
-      <view class="muted">约朋友、亲戚来吃饭，发邀请让大家应邀点菜；和家里的点餐分开，客人看不到家里的数据。</view>
-      <view class="row gap gathering-actions">
-        <button class="btn ghost small flex1" @click="goGatherings">我的聚餐</button>
-        <button class="btn small flex1" @click="newGathering">发起聚餐</button>
+      <view class="hub-row" @click="goGatherings">
+        <view>
+          <view class="hub-title">我的聚餐</view>
+        </view>
+        <text class="muted">›</text>
+      </view>
+      <view class="hub-row" @click="newGathering">
+        <view class="hub-title">发起聚餐</view>
+        <text class="link">新建</text>
       </view>
     </view>
 
@@ -57,37 +69,37 @@
         </view>
         <text v-if="currentFamily?.id === f.id" class="tag primary">当前</text>
       </view>
-      <view v-if="currentFamily?.inviteCode && !isChild" class="invite row between">
-        <view>
-          <view class="muted">邀请码（发给家人加入）</view>
-          <view class="code">{{ currentFamily.inviteCode }}</view>
+      <expand-section v-if="currentFamily && !isChild" title="邀请与截止时间" :boxed="false" :hint="currentFamily.inviteCode || ''">
+        <view v-if="currentFamily.inviteCode" class="invite row between">
+          <view>
+            <view class="muted">邀请码</view>
+            <view class="code">{{ currentFamily.inviteCode }}</view>
+          </view>
+          <button class="btn ghost small" @click="copyInvite">复制</button>
         </view>
-        <button class="btn ghost small" @click="copyInvite">复制</button>
-      </view>
-      <view v-if="currentFamily" class="muted rules">
-        点餐截止：早餐前一天 {{ currentFamily.breakfastDeadline }}，午餐 {{ currentFamily.lunchDeadline }}，晚餐 {{ currentFamily.dinnerDeadline }}
-      </view>
+        <view class="muted rules">
+          截止：早餐前一天 {{ currentFamily.breakfastDeadline }}，午餐 {{ currentFamily.lunchDeadline }}，晚餐 {{ currentFamily.dinnerDeadline }}
+        </view>
+      </expand-section>
     </view>
 
-    <view v-if="me" class="card">
-      <view class="card-title">我的口味</view>
+    <expand-section v-if="me" title="我的口味" :hint="profile.displayName">
       <view class="muted label">在家里的称呼</view>
       <input class="input" v-model="profile.displayName" maxlength="64" />
-      <view class="muted label">过敏（掌厨确认菜单时会看到）</view>
+      <view class="muted label">过敏</view>
       <input class="input" v-model="profile.allergies" placeholder="比如：花生、海鲜" maxlength="255" />
       <view class="muted label">忌口 / 口味</view>
       <input class="input" v-model="profile.dietaryNotes" placeholder="比如：不吃香菜、少辣" maxlength="255" />
       <button class="btn block" @click="saveProfile">保存</button>
-    </view>
+    </expand-section>
 
-    <view v-if="!isChild" class="card">
-      <view class="card-title">加入或创建家庭</view>
+    <expand-section v-if="!isChild" title="加入或创建家庭">
       <input class="input" v-model="inviteCode" placeholder="输入邀请码" maxlength="16" />
       <button class="btn ghost block" @click="join">加入家庭</button>
       <view class="divider" />
       <input class="input" v-model="familyName" placeholder="新家庭名称，比如：周家" maxlength="64" />
-      <button class="btn ghost block" @click="create">创建家庭（我当管理员）</button>
-    </view>
+      <button class="btn ghost block" @click="create">创建家庭</button>
+    </expand-section>
 
     <view v-if="notices.length" class="card">
       <view class="card-title">最近通知</view>
@@ -108,6 +120,7 @@ import { familyApi } from '@/api'
 import type { MemberView, NotificationView } from '@/api/types'
 import { applyTabBar, canCook, currentFamily, ensureSession, isAdmin, isChild, logout, refreshFamily, refreshMe, selectFamily, session } from '@/store/session'
 import { ROLE_LABELS } from '@/utils/format'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const members = ref<MemberView[]>([])
 const notices = ref<NotificationView[]>([])

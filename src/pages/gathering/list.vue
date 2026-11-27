@@ -2,8 +2,7 @@
   <view class="container">
     <view class="card intro">
       <view class="card-title">临时聚餐</view>
-      <view class="muted">约朋友、亲戚来吃饭：发邀请、大家应邀点菜，一场一清。聚餐和家里的点餐是分开的，客人看不到你家的菜谱和日常菜单。</view>
-      <button class="btn block" style="margin-top: 24rpx" @click="create">发起一场聚餐</button>
+      <button class="btn block" style="margin-top: 16rpx" @click="create">发起一场聚餐</button>
     </view>
 
     <view class="seg tabs">

@@ -10,8 +10,7 @@
     <!-- #ifdef MP-WEIXIN -->
     <view class="card">
       <button class="btn block" :loading="busy" @click="wx">微信一键登录</button>
-      <view class="muted tip">使用微信身份登录，无需注册</view>
-    </view>
+          </view>
     <!-- #endif -->
 
     <view class="card">
@@ -29,7 +28,7 @@
         <button class="btn block" :loading="busy" @click="submit">{{ mode === 'login' ? '登录' : '注册并进入' }}</button>
       </view>
       <!-- #ifdef H5 -->
-      <view class="muted tip">H5 版暂不支持微信网页授权登录（需要公众号），请用账号登录。管理员也可以在后台给家人建账号。</view>
+      <view class="muted tip">请用账号登录</view>
       <!-- #endif -->
     </view>
   </view>

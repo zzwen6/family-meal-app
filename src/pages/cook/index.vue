@@ -20,15 +20,9 @@
         <view v-if="notSubmitted.length" class="muted line">还没点：{{ notSubmitted.join('、') }}</view>
         <view v-if="away.length" class="muted line">不在家：{{ away.join('、') }}</view>
         <view v-if="allergyNotes.length" class="allergy">⚠️ {{ allergyNotes.join('；') }}</view>
-        <view v-if="board.canManageAssignment" class="row gap assign-row">
-          <picker mode="selector" :range="memberNames" @change="(e: any) => assignCook(Number(e.detail.value))">
-            <button class="btn ghost small">{{ board.assignedCook ? '改派掌厨' : '指定掌厨' }}</button>
-          </picker>
-        </view>
       </view>
 
-      <view v-if="board.hints.length" class="card">
-        <view class="card-title">确认前请看一眼</view>
+      <view v-if="board.hints.length" class="compact-banner">
         <view v-for="h in board.hints" :key="h.type + (h.dishName || '') + (h.memberId || '') + (h.leftoverId || '')" class="hint" :class="hintClass(h.type)">
           {{ h.message }}
         </view>
@@ -89,38 +83,45 @@
         <textarea class="textarea" v-model="note" placeholder="给家人的话，比如「6 点半开饭」" maxlength="500" />
       </view>
 
-      <view v-if="board.leftovers.filter((l) => !l.used).length" class="card">
-        <view class="card-title">用掉剩菜</view>
-        <view class="muted">勾选后，确认菜单时会把这份剩菜标为已用，采购清单也不再扣它。</view>
-        <view v-for="l in board.leftovers.filter((l) => !l.used)" :key="l.id" class="row between leftover">
-          <view>
-            <view>{{ l.name }}<text v-if="l.amount"> {{ l.amount }}{{ l.unit || '' }}</text></view>
-            <view v-if="l.expiresOn" class="muted">大约保鲜到 {{ l.expiresOn }}</view>
+      <expand-section
+        title="更多工具"
+        :hint="toolsHint"
+      >
+        <view v-if="board.canManageAssignment" class="row gap assign-row">
+          <picker mode="selector" :range="memberNames" @change="(e: any) => assignCook(Number(e.detail.value))">
+            <button class="btn ghost small">{{ board.assignedCook ? '改派掌厨' : '指定掌厨' }}</button>
+          </picker>
+        </view>
+        <view v-if="board.leftovers.filter((l) => !l.used).length">
+          <view class="sub">用掉剩菜</view>
+          <view v-for="l in board.leftovers.filter((l) => !l.used)" :key="l.id" class="row between leftover">
+            <view>
+              <view>{{ l.name }}<text v-if="l.amount"> {{ l.amount }}{{ l.unit || '' }}</text></view>
+              <view v-if="l.expiresOn" class="muted">保鲜到 {{ l.expiresOn }}</view>
+            </view>
+            <switch :checked="useLeftoverIds.includes(l.id)" color="#e6772e" @change="(e: any) => toggleLeftover(l.id, e.detail.value)" />
           </view>
-          <switch :checked="useLeftoverIds.includes(l.id)" color="#e6772e" @change="(e: any) => toggleLeftover(l.id, e.detail.value)" />
         </view>
-      </view>
-
-      <view v-if="status === 'CONFIRMED' || status === 'READY'" class="card">
-        <view class="card-title">登记剩菜</view>
-        <input class="input mini" v-model="newLeftover.name" placeholder="菜名或食材名" maxlength="64" />
-        <view class="row gap add-row">
-          <input class="input mini amt" v-model="newLeftover.amount" placeholder="数量" />
-          <input class="input mini unit" v-model="newLeftover.unit" placeholder="单位" maxlength="16" />
+        <view v-if="status === 'CONFIRMED' || status === 'READY'">
+          <view class="sub">登记剩菜</view>
+          <input class="input mini" v-model="newLeftover.name" placeholder="菜名或食材名" maxlength="64" />
+          <view class="row gap add-row">
+            <input class="input mini amt" v-model="newLeftover.amount" placeholder="数量" />
+            <input class="input mini unit" v-model="newLeftover.unit" placeholder="单位" maxlength="16" />
+          </view>
+          <input class="input mini" v-model="newLeftover.expiresOn" placeholder="保鲜到期日，如 2026-11-15" maxlength="10" />
+          <button class="btn ghost small" style="margin-top: 16rpx" @click="addLeftover">登记</button>
         </view>
-        <input class="input mini" v-model="newLeftover.expiresOn" placeholder="保鲜到期日，如 2026-11-15" maxlength="10" />
-        <button class="btn ghost small" style="margin-top: 16rpx" @click="addLeftover">登记</button>
-      </view>
+      </expand-section>
 
       <view class="actions">
-        <button v-if="status !== 'READY'" class="btn block" :loading="busy" @click="confirm">
-          {{ status === 'CONFIRMED' ? '更新菜单并重新生成采购清单' : '确认菜单，生成采购清单' }}
-        </button>
-        <view class="row gap">
-          <button v-if="status === 'CONFIRMED'" class="btn ghost flex1" @click="ready">🍚 开饭啦</button>
-          <button v-if="status === 'CONFIRMED' || status === 'READY'" class="btn ghost flex1" @click="goShopping">采购清单</button>
-          <button v-if="status === 'OPEN' && board.menu" class="btn ghost flex1" @click="lock">提前截止</button>
-          <button v-if="status === 'LOCKED' || status === 'CONFIRMED'" class="btn ghost flex1" @click="reopen">重新开放点餐</button>
+        <button v-if="status === 'OPEN' || status === 'LOCKED'" class="btn block" :loading="busy" @click="confirm">确认菜单，生成采购清单</button>
+        <button v-if="status === 'CONFIRMED'" class="btn block" @click="ready">开饭啦</button>
+        <view class="sec-links">
+          <text v-if="status === 'CONFIRMED'" class="link" @click="confirm">更新菜单</text>
+          <text v-if="status === 'CONFIRMED' || status === 'READY'" class="link" @click="goShopping">采购清单</text>
+          <text v-if="status === 'OPEN' && board.menu" class="link" @click="lock">提前截止</text>
+          <text v-if="status === 'LOCKED' || status === 'CONFIRMED'" class="link" @click="reopen">重新开放点餐</text>
         </view>
       </view>
     
@@ -128,7 +129,7 @@
       <rate-meal :menu-id="board.menu.id" :ratings="board.ratings" :my-rating="board.myRating" @saved="load" />
     </view>
     <view v-if="board?.planItems?.length && !board?.menu?.items?.length" class="card muted">
-      已带出本餐计划 {{ board.planItems.length }} 道菜，确认前还可以改。
+      已带出本餐计划 {{ board.planItems.length }} 道
     </view>
 
 </template>
@@ -144,6 +145,7 @@ import { currentFamily, ensureSession, session } from '@/store/session'
 import { dateLabel, deadlineLabel, MEAL_LABELS, STATUS_LABELS } from '@/utils/format'
 import RateMeal from '@/components/RateMeal.vue'
 import SlotPicker from '@/components/SlotPicker.vue'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 interface Pick {
   key: string
@@ -170,6 +172,13 @@ const useLeftoverIds = ref<number[]>([])
 const newLeftover = ref({ name: '', amount: '', unit: '', expiresOn: '' })
 let seq = 0
 
+const toolsHint = computed(() => {
+  const unused = board.value?.leftovers.filter((l) => !l.used).length || 0
+  const parts: string[] = []
+  if (board.value?.assignedCook) parts.push('掌厨 ' + board.value.assignedCook.displayName)
+  if (unused) parts.push('剩菜 ' + unused + ' 份')
+  return parts.join(' · ')
+})
 const status = computed<MenuStatus>(() => board.value?.menu?.status || 'OPEN')
 const statusTag = computed(() => ({ OPEN: 'primary', LOCKED: 'warn', CONFIRMED: 'success', READY: 'success' })[status.value])
 const dishNames = computed(() => dishes.value.map((d) => d.name))
@@ -419,4 +428,6 @@ onPullDownRefresh(load)
 .leftover { padding: 16rpx 0; border-bottom: 1rpx solid #f2f2f2; }
 .amt { width: 110rpx; }
 .unit { width: 90rpx; }
+.sub { font-size: 24rpx; color: $fm-muted; margin: 16rpx 0 8rpx; }
+.hint { padding: 4rpx 0; line-height: 1.5; }
 </style>

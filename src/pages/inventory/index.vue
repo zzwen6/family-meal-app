@@ -5,8 +5,7 @@
         <text>家庭库存</text>
         <text v-if="canEdit" class="link" @click="editInv()">登记</text>
       </view>
-      <view class="muted">生成采购清单时会对照这里的数量、少买家里已有的，但生成时不改库存数字。勾选已买会入账，用掉对得上食材的剩菜、以及开饭时会按「家里已有」的量扣库存，也可以随时手工改。</view>
-      <view v-if="!inventory.length" class="muted" style="margin-top: 16rpx">还没有库存</view>
+      <view v-if="!inventory.length" class="muted">还没有库存</view>
       <view v-for="it in inventory" :key="it.id" class="item row between">
         <view>
           <view>{{ it.name }} <text v-if="it.staple" class="tag">常备</text></view>
@@ -45,8 +44,7 @@
       </view>
     </view>
 
-    <view v-if="ledger.length" class="card">
-      <view class="card-title">最近变动</view>
+    <expand-section v-if="ledger.length" title="最近变动" :hint="ledger.length + ' 条'">
       <view v-for="l in ledger" :key="l.id" class="item">
         <view class="row between">
           <text>{{ LEDGER_LABELS[l.sourceType] || l.sourceType }} · {{ l.name }}</text>
@@ -54,7 +52,7 @@
         </view>
         <view class="muted">{{ l.note || '' }}<text v-if="l.balanceAfter != null"> · 结余 {{ l.balanceAfter }}{{ l.unit || '' }}</text></view>
       </view>
-    </view>
+    </expand-section>
   </view>
 </template>
 
@@ -65,6 +63,7 @@ import { inventoryApi, leftoverApi } from '@/api'
 import type { InventoryView, LedgerView, LeftoverView } from '@/api/types'
 import { canCook, currentFamily, ensureSession } from '@/store/session'
 import { amountLabel, LEDGER_LABELS } from '@/utils/format'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 const inventory = ref<InventoryView[]>([])
 const leftovers = ref<LeftoverView[]>([])

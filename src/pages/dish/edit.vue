@@ -31,6 +31,9 @@
           <input class="input" type="number" v-model.number="form.defaultServings" />
         </view>
       </view>
+    </view>
+
+    <expand-section title="封面、简介和小贴士" :hint="moreHint">
       <view class="label">封面</view>
       <view class="row gap" style="align-items: flex-start">
         <image v-if="form.coverUrl" :src="mediaSrc(form.coverUrl)" class="cover" mode="aspectFill" @click="chooseCover" />
@@ -42,7 +45,7 @@
       <textarea class="input area" v-model="form.description" maxlength="500" auto-height />
       <view class="label">小贴士</view>
       <textarea class="input area" v-model="form.tips" maxlength="1000" auto-height placeholder="比如：猪脚要提前焯水" />
-    </view>
+    </expand-section>
 
     <view class="card">
       <view class="card-title">主料</view>
@@ -106,10 +109,8 @@
       <text class="link" @click="form.steps.push(emptyStep())">+ 添加步骤</text>
     </view>
 
-    <view class="card">
-      <view class="card-title">营养估算（可选手工覆盖）</view>
-      <view class="muted">默认按用料估算，是约数不是检测。打开覆盖后，以你填的整道菜（默认份数）为准。</view>
-      <view class="row between" style="margin: 16rpx 0" @click="overrideOn = !overrideOn">
+    <expand-section title="营养估算" :hint="overrideOn ? '已手工填写' : '可选，按用料估算'">
+      <view class="row between" style="margin: 8rpx 0" @click="overrideOn = !overrideOn">
         <text>手工填写整道菜营养</text>
         <text class="chip" :class="{ active: overrideOn }">{{ overrideOn ? '已开启' : '关闭' }}</text>
       </view>
@@ -119,7 +120,7 @@
         <view class="flex1"><view class="label">脂肪（克）</view><input class="input" type="digit" v-model="ov.fat" /></view>
         <view class="flex1"><view class="label">碳水（克）</view><input class="input" type="digit" v-model="ov.carb" /></view>
       </view>
-    </view>
+    </expand-section>
 
     <button class="btn block" :loading="saving" @click="save">保存</button>
   </view>
@@ -143,6 +144,7 @@ import { canCook, currentFamily, ensureSession } from '@/store/session'
 import { DIFFICULTY_LABELS } from '@/utils/format'
 import { mediaSrc } from '@/utils/media'
 import SelectSheet from '@/components/SelectSheet.vue'
+import ExpandSection from '@/components/ExpandSection.vue'
 
 type Ing = { name: string; amountInput: string; unit: string; staple: boolean; note: string; customUnit?: boolean }
 type Step = { content: string; durationMinutes: number | null; imageUrl: string; videoUrl: string; videoCoverUrl: string; videoDurationSeconds: number | null }
@@ -172,6 +174,8 @@ const form = reactive({
   seasonings: [] as Ing[],
   steps: [] as Step[],
 })
+
+const moreHint = computed(() => [form.coverUrl ? '已有封面' : '', form.description ? '已有简介' : '', form.tips ? '已有小贴士' : ''].filter(Boolean).join(' · '))
 
 function emptyIng(): Ing { return { name: '', amountInput: '', unit: '', staple: false, note: '' } }
 function emptyStep(): Step { return { content: '', durationMinutes: null, imageUrl: '', videoUrl: '', videoCoverUrl: '', videoDurationSeconds: null } }
