@@ -5,7 +5,13 @@
       <view class="label">菜名</view>
       <input class="input" v-model="form.name" maxlength="64" placeholder="比如：红烧猪脚" />
       <view class="label">分类</view>
-      <input class="input" v-model="form.category" maxlength="32" placeholder="家常菜 / 汤 / 孩子爱吃…" />
+      <picker v-if="!categoryCustom" class="field-picker" mode="selector" :range="categoryOptions" :value="categoryIndex" @change="onPickCategory">
+        <view class="input picker row between">
+          <text>{{ form.category || '请选择分类' }}</text>
+          <text class="caret">▾</text>
+        </view>
+      </picker>
+      <input v-else class="input" v-model="form.category" maxlength="32" placeholder="输入分类，比如：烘焙" :focus="true" @blur="onCategoryCustomBlur" />
       <view class="row wrap gap">
         <view class="flex1">
           <view class="label">难度</view>
@@ -43,7 +49,10 @@
         <input class="input" v-model="i.name" placeholder="名称" />
         <view class="row gap">
           <input class="input flex1" type="digit" :value="i.amount ?? ''" placeholder="适量" @blur="e => i.amount = num(e)" />
-          <input class="input unit" v-model="i.unit" placeholder="单位" />
+          <picker v-if="!i.customUnit" class="unit-picker" mode="selector" :range="unitOptions(i.unit)" :value="unitIndex(i.unit)" @change="(e: any) => onPickUnit(i, e)">
+            <view class="input unit picker" :class="{ placeholder: !i.unit }">{{ i.unit || '单位' }}</view>
+          </picker>
+          <input v-else class="input unit" v-model="i.unit" maxlength="16" placeholder="单位" :focus="true" @blur="onUnitCustomBlur(i)" />
         </view>
         <view class="row between">
           <text class="chip" :class="{ active: i.staple }" @click="i.staple = !i.staple">家里常备</text>
@@ -59,7 +68,10 @@
         <input class="input" v-model="i.name" placeholder="名称" />
         <view class="row gap">
           <input class="input flex1" type="digit" :value="i.amount ?? ''" placeholder="适量" @blur="e => i.amount = num(e)" />
-          <input class="input unit" v-model="i.unit" placeholder="单位" />
+          <picker v-if="!i.customUnit" class="unit-picker" mode="selector" :range="unitOptions(i.unit)" :value="unitIndex(i.unit)" @change="(e: any) => onPickUnit(i, e)">
+            <view class="input unit picker" :class="{ placeholder: !i.unit }">{{ i.unit || '单位' }}</view>
+          </picker>
+          <input v-else class="input unit" v-model="i.unit" maxlength="16" placeholder="单位" :focus="true" @blur="onUnitCustomBlur(i)" />
         </view>
         <view class="row between">
           <text class="chip" :class="{ active: i.staple }" @click="i.staple = !i.staple">家里常备</text>
@@ -113,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { dishApi } from '@/api'
 import type { DishRequest } from '@/api/types'
@@ -121,12 +133,18 @@ import { canCook, currentFamily, ensureSession } from '@/store/session'
 import { DIFFICULTY_LABELS } from '@/utils/format'
 import { mediaSrc } from '@/utils/media'
 
-type Ing = { name: string; amount: number | null; unit: string; staple: boolean; note: string }
+type Ing = { name: string; amount: number | null; unit: string; staple: boolean; note: string; customUnit?: boolean }
 type Step = { content: string; durationMinutes: number | null; imageUrl: string; videoUrl: string; videoCoverUrl: string; videoDurationSeconds: number | null }
+
+const UNIT_PRESETS = ['克', '千克', '斤', '两', '毫升', '升', '个', '只', '根', '片', '颗', '粒', '棵', '块', '瓣', '条', '把', '勺', '茶匙', '汤匙', '杯', '袋', '包', '盒', '罐', '瓶', '滴', '适量', '少许']
+const CATEGORY_PRESETS = ['家常菜', '热菜', '凉菜', '汤羹', '主食', '面食', '粥', '早餐', '炒菜', '炖煮', '蒸菜', '煎炸', '海鲜', '肉类', '素菜', '孩子爱吃', '下饭菜', '甜品', '饮品']
+const CUSTOM_OPTION = '自定义'
 
 const ready = ref(false)
 const saving = ref(false)
 const overrideOn = ref(false)
+const categoryCustom = ref(false)
+const familyCategories = ref<string[]>([])
 const ov = reactive({ kcal: '', protein: '', fat: '', carb: '' })
 let dishId = 0
 
@@ -146,6 +164,78 @@ const form = reactive({
 
 function emptyIng(): Ing { return { name: '', amount: null, unit: '', staple: false, note: '' } }
 function emptyStep(): Step { return { content: '', durationMinutes: null, imageUrl: '', videoUrl: '', videoCoverUrl: '', videoDurationSeconds: null } }
+
+function unitOptions(current: string): string[] {
+  const list = [...UNIT_PRESETS]
+  const v = (current || '').trim()
+  if (v && !list.includes(v)) list.push(v)
+  list.push(CUSTOM_OPTION)
+  return list
+}
+function unitIndex(current: string): number {
+  const v = (current || '').trim()
+  if (!v) return 0
+  const i = unitOptions(current).indexOf(v)
+  return i >= 0 ? i : 0
+}
+function onPickUnit(item: Ing, e: { detail: { value: string | number } }) {
+  const picked = unitOptions(item.unit)[Number(e.detail.value)]
+  if (picked === CUSTOM_OPTION) {
+    if (UNIT_PRESETS.includes(item.unit)) item.unit = ''
+    item.customUnit = true
+    return
+  }
+  item.customUnit = false
+  item.unit = picked || ''
+}
+function onUnitCustomBlur(item: Ing) {
+  item.unit = (item.unit || '').trim()
+  item.customUnit = false
+}
+
+const categoryOptions = computed(() => {
+  const seen = new Set<string>()
+  const list: string[] = []
+  for (const c of CATEGORY_PRESETS) {
+    if (!seen.has(c)) { seen.add(c); list.push(c) }
+  }
+  for (const c of familyCategories.value) {
+    const t = (c || '').trim()
+    if (t && !seen.has(t)) { seen.add(t); list.push(t) }
+  }
+  const cur = form.category.trim()
+  if (cur && !seen.has(cur)) list.push(cur)
+  list.push(CUSTOM_OPTION)
+  return list
+})
+const categoryIndex = computed(() => {
+  const i = categoryOptions.value.indexOf(form.category)
+  return i >= 0 ? i : 0
+})
+function onPickCategory(e: { detail: { value: string | number } }) {
+  const picked = categoryOptions.value[Number(e.detail.value)]
+  if (picked === CUSTOM_OPTION) {
+    const known = new Set([...CATEGORY_PRESETS, ...familyCategories.value])
+    if (known.has(form.category)) form.category = ''
+    categoryCustom.value = true
+    return
+  }
+  categoryCustom.value = false
+  if (picked) form.category = picked
+}
+function onCategoryCustomBlur() {
+  const v = form.category.trim().slice(0, 32)
+  form.category = v || '家常菜'
+  categoryCustom.value = false
+}
+
+async function loadCategories() {
+  try {
+    familyCategories.value = await dishApi.categories(currentFamily.value!.id)
+  } catch {
+    familyCategories.value = []
+  }
+}
 function num(e: Event): number | null {
   const v = (e.target as HTMLInputElement)?.value
   if (v === undefined || v === '') return null
@@ -204,7 +294,13 @@ async function load(id: number) {
 }
 
 function cleanIng(list: Ing[]) {
-  return list.filter((i) => i.name.trim()).map((i) => ({ ...i, name: i.name.trim(), unit: i.unit || undefined, note: i.note || undefined }))
+  return list.filter((i) => i.name.trim()).map((i) => ({
+    name: i.name.trim(),
+    amount: i.amount,
+    unit: i.unit || undefined,
+    staple: i.staple,
+    note: i.note || undefined,
+  }))
 }
 
 async function save() {
@@ -259,11 +355,13 @@ onLoad(async (q) => {
     return
   }
   dishId = Number(q?.id) || 0
+  const catsPromise = loadCategories()
   if (dishId) await load(dishId)
   else {
     form.ingredients.push(emptyIng())
     form.steps.push(emptyStep())
   }
+  await catsPromise
   ready.value = true
 })
 </script>
@@ -273,7 +371,12 @@ onLoad(async (q) => {
 .area { min-height: 80rpx; }
 .cover { width: 160rpx; height: 160rpx; border-radius: 12rpx; background: #eee; }
 .ph { display: flex; align-items: center; justify-content: center; font-size: 24rpx; color: $fm-primary; background: $fm-primary-light; }
-.unit { width: 140rpx; }
+.field-picker { display: block; width: 100%; }
+.unit-picker { flex-shrink: 0; width: 176rpx; }
+.picker { display: flex; align-items: center; box-sizing: border-box; color: #333; width: 100%; }
+.caret { color: $fm-muted; font-size: 24rpx; margin-left: 12rpx; }
+.placeholder { color: $fm-muted; }
+.unit { box-sizing: border-box; width: 176rpx; padding: 0 16rpx; flex-shrink: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ing { padding-bottom: 16rpx; margin-bottom: 16rpx; border-bottom: 1rpx dashed #eee; }
 .step-edit { margin-bottom: 24rpx; }
 .no { width: 44rpx; height: 44rpx; border-radius: 50%; background: $fm-primary; color: #fff; text-align: center; line-height: 44rpx; }
