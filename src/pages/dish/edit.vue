@@ -1,16 +1,17 @@
 <template>
+  <view>
   <view class="container" v-if="ready">
     <view class="card">
       <view class="card-title">基本信息</view>
       <view class="label">菜名</view>
       <input class="input" v-model="form.name" maxlength="64" placeholder="比如：红烧猪脚" />
       <view class="label">分类</view>
-      <picker v-if="!categoryCustom" class="field-picker" mode="selector" :range="categoryOptions" :value="categoryIndex" @change="onPickCategory">
+      <view v-if="!categoryCustom" class="field-picker" @click="openCategorySheet">
         <view class="input picker row between">
           <text>{{ form.category || '请选择分类' }}</text>
           <text class="caret">▾</text>
         </view>
-      </picker>
+      </view>
       <input v-else class="input" v-model="form.category" maxlength="32" placeholder="输入分类，比如：烘焙" :focus="true" @blur="onCategoryCustomBlur" />
       <view class="row wrap gap">
         <view class="flex1">
@@ -48,10 +49,10 @@
       <view v-for="(i, idx) in form.ingredients" :key="'i'+idx" class="ing">
         <input class="input" v-model="i.name" placeholder="名称" />
         <view class="row gap">
-          <input class="input flex1" type="digit" :value="i.amount ?? ''" placeholder="适量" @blur="e => i.amount = num(e)" />
-          <picker v-if="!i.customUnit" class="unit-picker" mode="selector" :range="unitOptions(i.unit)" :value="unitIndex(i.unit)" @change="(e: any) => onPickUnit(i, e)">
+          <input class="input flex1" type="digit" v-model="i.amountInput" placeholder="数量" />
+          <view v-if="!i.customUnit" class="unit-picker" @click="openUnitSheet(i)">
             <view class="input unit picker" :class="{ placeholder: !i.unit }">{{ i.unit || '单位' }}</view>
-          </picker>
+          </view>
           <input v-else class="input unit" v-model="i.unit" maxlength="16" placeholder="单位" :focus="true" @blur="onUnitCustomBlur(i)" />
         </view>
         <view class="row between">
@@ -67,10 +68,10 @@
       <view v-for="(i, idx) in form.seasonings" :key="'s'+idx" class="ing">
         <input class="input" v-model="i.name" placeholder="名称" />
         <view class="row gap">
-          <input class="input flex1" type="digit" :value="i.amount ?? ''" placeholder="适量" @blur="e => i.amount = num(e)" />
-          <picker v-if="!i.customUnit" class="unit-picker" mode="selector" :range="unitOptions(i.unit)" :value="unitIndex(i.unit)" @change="(e: any) => onPickUnit(i, e)">
+          <input class="input flex1" type="digit" v-model="i.amountInput" placeholder="数量" />
+          <view v-if="!i.customUnit" class="unit-picker" @click="openUnitSheet(i)">
             <view class="input unit picker" :class="{ placeholder: !i.unit }">{{ i.unit || '单位' }}</view>
-          </picker>
+          </view>
           <input v-else class="input unit" v-model="i.unit" maxlength="16" placeholder="单位" :focus="true" @blur="onUnitCustomBlur(i)" />
         </view>
         <view class="row between">
@@ -122,6 +123,15 @@
 
     <button class="btn block" :loading="saving" @click="save">保存</button>
   </view>
+  <select-sheet
+    :visible="sheet.show"
+    :title="sheet.title"
+    :options="sheet.options"
+    :selected="sheet.selected"
+    @select="onSheetSelect"
+    @close="sheet.show = false"
+  />
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -132,8 +142,9 @@ import type { DishRequest } from '@/api/types'
 import { canCook, currentFamily, ensureSession } from '@/store/session'
 import { DIFFICULTY_LABELS } from '@/utils/format'
 import { mediaSrc } from '@/utils/media'
+import SelectSheet from '@/components/SelectSheet.vue'
 
-type Ing = { name: string; amount: number | null; unit: string; staple: boolean; note: string; customUnit?: boolean }
+type Ing = { name: string; amountInput: string; unit: string; staple: boolean; note: string; customUnit?: boolean }
 type Step = { content: string; durationMinutes: number | null; imageUrl: string; videoUrl: string; videoCoverUrl: string; videoDurationSeconds: number | null }
 
 const UNIT_PRESETS = ['克', '千克', '斤', '两', '毫升', '升', '个', '只', '根', '片', '颗', '粒', '棵', '块', '瓣', '条', '把', '勺', '茶匙', '汤匙', '杯', '袋', '包', '盒', '罐', '瓶', '滴', '适量', '少许']
@@ -162,7 +173,7 @@ const form = reactive({
   steps: [] as Step[],
 })
 
-function emptyIng(): Ing { return { name: '', amount: null, unit: '', staple: false, note: '' } }
+function emptyIng(): Ing { return { name: '', amountInput: '', unit: '', staple: false, note: '' } }
 function emptyStep(): Step { return { content: '', durationMinutes: null, imageUrl: '', videoUrl: '', videoCoverUrl: '', videoDurationSeconds: null } }
 
 function unitOptions(current: string): string[] {
@@ -172,14 +183,37 @@ function unitOptions(current: string): string[] {
   list.push(CUSTOM_OPTION)
   return list
 }
-function unitIndex(current: string): number {
-  const v = (current || '').trim()
-  if (!v) return 0
-  const i = unitOptions(current).indexOf(v)
-  return i >= 0 ? i : 0
+const sheet = reactive({
+  show: false,
+  title: '',
+  options: [] as string[],
+  selected: '',
+  kind: 'category' as 'category' | 'unit',
+  unitItem: null as Ing | null,
+})
+
+function openCategorySheet() {
+  sheet.show = true
+  sheet.title = '选择分类'
+  sheet.options = categoryOptions.value
+  sheet.selected = form.category
+  sheet.kind = 'category'
+  sheet.unitItem = null
 }
-function onPickUnit(item: Ing, e: { detail: { value: string | number } }) {
-  const picked = unitOptions(item.unit)[Number(e.detail.value)]
+function openUnitSheet(item: Ing) {
+  sheet.show = true
+  sheet.title = '选择单位'
+  sheet.options = unitOptions(item.unit)
+  sheet.selected = item.unit
+  sheet.kind = 'unit'
+  sheet.unitItem = item
+}
+function onSheetSelect(picked: string) {
+  sheet.show = false
+  if (sheet.kind === 'unit' && sheet.unitItem) applyUnit(sheet.unitItem, picked)
+  else applyCategory(picked)
+}
+function applyUnit(item: Ing, picked: string) {
   if (picked === CUSTOM_OPTION) {
     if (UNIT_PRESETS.includes(item.unit)) item.unit = ''
     item.customUnit = true
@@ -208,12 +242,7 @@ const categoryOptions = computed(() => {
   list.push(CUSTOM_OPTION)
   return list
 })
-const categoryIndex = computed(() => {
-  const i = categoryOptions.value.indexOf(form.category)
-  return i >= 0 ? i : 0
-})
-function onPickCategory(e: { detail: { value: string | number } }) {
-  const picked = categoryOptions.value[Number(e.detail.value)]
+function applyCategory(picked: string) {
   if (picked === CUSTOM_OPTION) {
     const known = new Set([...CATEGORY_PRESETS, ...familyCategories.value])
     if (known.has(form.category)) form.category = ''
@@ -236,13 +265,6 @@ async function loadCategories() {
     familyCategories.value = []
   }
 }
-function num(e: Event): number | null {
-  const v = (e.target as HTMLInputElement)?.value
-  if (v === undefined || v === '') return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-
 async function upload(kind: 'image' | 'video'): Promise<string | null> {
   const fid = currentFamily.value!.id
   if (kind === 'image') {
@@ -276,8 +298,8 @@ async function load(id: number) {
   form.coverUrl = d.coverUrl || ''
   form.description = d.description || ''
   form.tips = d.tips || ''
-  form.ingredients = d.ingredients.map((i) => ({ name: i.name, amount: i.amount ?? null, unit: i.unit || '', staple: i.staple, note: i.note || '' }))
-  form.seasonings = d.seasonings.map((i) => ({ name: i.name, amount: i.amount ?? null, unit: i.unit || '', staple: i.staple, note: i.note || '' }))
+  form.ingredients = d.ingredients.map((i) => ({ name: i.name, amountInput: i.amount == null ? '' : String(i.amount), unit: i.unit || '', staple: i.staple, note: i.note || '' }))
+  form.seasonings = d.seasonings.map((i) => ({ name: i.name, amountInput: i.amount == null ? '' : String(i.amount), unit: i.unit || '', staple: i.staple, note: i.note || '' }))
   form.steps = d.steps.map((s) => ({
     content: s.content, durationMinutes: s.durationMinutes ?? null,
     imageUrl: s.imageUrl || '', videoUrl: s.videoUrl || '', videoCoverUrl: s.videoCoverUrl || '',
@@ -293,10 +315,17 @@ async function load(id: number) {
   uni.setNavigationBarTitle({ title: '编辑菜谱' })
 }
 
+function parseAmount(raw: string): number | null {
+  const s = (raw ?? '').trim()
+  if (s === '') return null
+  const n = Number(s)
+  return Number.isFinite(n) ? n : null
+}
+
 function cleanIng(list: Ing[]) {
   return list.filter((i) => i.name.trim()).map((i) => ({
     name: i.name.trim(),
-    amount: i.amount,
+    amount: parseAmount(i.amountInput),
     unit: i.unit || undefined,
     staple: i.staple,
     note: i.note || undefined,
