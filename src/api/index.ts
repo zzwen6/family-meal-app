@@ -1,6 +1,6 @@
 import { request, uploadFile } from './request'
 import type {
-  AssignmentView, BoardView, ConfirmItem, DishDetail, DishRequest, DishSummary, MediaView, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
+  AssignmentView, BoardView, ConfirmItem, CopyFromPublicResult, DishDetail, DishRequest, DishSummary, MediaView, FamilyGatheringSlot, FamilyView, GatheringConfirmItem,
   GatheringDetail, GatheringForm, GatheringNotificationView, GatheringShoppingItemRequest, GatheringShoppingView,
   GatheringSummary, HintView, InventoryView, LedgerView, InvitePreview, LeftoverView, LoginResponse, MealType, MeResponse,
   ApplyResult, MemberView, MenuView, NotificationView, PlanItemView, RatingRequest, RatingView, RotationView, Rsvp,
@@ -48,6 +48,16 @@ export const dishApi = {
   deactivate: (fid: number, id: number) => request<null>('DELETE', `${fam(fid)}/dishes/${id}`),
   restore: (fid: number, id: number) => request<null>('POST', `${fam(fid)}/dishes/${id}/restore`),
   upload: (fid: number, filePath: string) => uploadFile<MediaView>(`${fam(fid)}/media`, filePath),
+  copyFromPublic: (fid: number, publicDishId: number) =>
+    request<CopyFromPublicResult>('POST', `${fam(fid)}/dishes/from-public/${publicDishId}`),
+}
+
+export const publicDishApi = {
+  list: (params: { category?: string; keyword?: string } = {}) =>
+    request<DishSummary[]>('GET', `/api/public-dishes?${qs(params)}`),
+  categories: () => request<string[]>('GET', '/api/public-dishes/categories'),
+  detail: (id: number, servings?: number) =>
+    request<DishDetail>('GET', `/api/public-dishes/${id}?${qs({ servings })}`),
 }
 
 export const wishApi = {

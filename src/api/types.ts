@@ -128,6 +128,11 @@ export interface DishDetail extends DishSummary {
   nutritionOverride?: boolean
 }
 
+export interface CopyFromPublicResult {
+  alreadyExists: boolean
+  dish: DishDetail
+}
+
 export interface DishRequest {
   name: string
   category: string

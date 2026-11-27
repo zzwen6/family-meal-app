@@ -8,11 +8,16 @@
           <text class="cat" :class="{ active: !category }" @click="pick('')">全部</text>
           <text v-for="c in categories" :key="c" class="cat" :class="{ active: category === c }" @click="pick(c)">{{ c }}</text>
         </scroll-view>
+        <view v-if="!isChild" class="btn ghost small add-btn" @click="goCatalog()">公共菜谱</view>
         <view v-if="canCook" class="btn ghost small add-btn" @click="goEdit()">录入菜谱</view>
       </view>
       <view v-if="loaded && !dishes.length" class="empty">
         <view>{{ emptyText }}</view>
-        <view v-if="canCook" class="btn empty-cta" @click="goEdit()">录入菜谱</view>
+        <view v-if="canCook" class="empty-actions">
+          <view class="btn empty-cta" @click="goCatalog()">从公共菜谱加入</view>
+          <view class="btn ghost empty-cta" @click="goEdit()">录入菜谱</view>
+        </view>
+        <view v-else-if="!isChild" class="btn empty-cta" @click="goCatalog()">逛逛公共菜谱</view>
       </view>
       <view class="grid">
         <view v-for="d in dishes" :key="d.id" class="item" :class="{ big: isChild }" @click="open(d.id)">
@@ -85,6 +90,9 @@ function openDetail(id: number) {
 function goEdit() {
   uni.navigateTo({ url: '/pages/dish/edit' })
 }
+function goCatalog() {
+  uni.navigateTo({ url: '/pages/catalog/list' })
+}
 
 onShow(load)
 onPullDownRefresh(load)
@@ -96,6 +104,7 @@ onPullDownRefresh(load)
 .cats { flex: 1; width: 0; white-space: nowrap; }
 .add-btn { flex-shrink: 0; margin-left: 12rpx; }
 .empty-cta { display: inline-block; margin-top: 28rpx; }
+.empty-actions { display: flex; justify-content: center; gap: 16rpx; flex-wrap: wrap; }
 .cat { display: inline-block; padding: 8rpx 24rpx; margin-right: 12rpx; border-radius: 999rpx; background: #fff; font-size: 26rpx; color: #555; }
 .cat.active { background: $fm-primary; color: #fff; }
 .grid { display: flex; flex-wrap: wrap; justify-content: space-between; }

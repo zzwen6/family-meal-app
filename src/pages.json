@@ -7,6 +7,8 @@
     { "path": "pages/wish/edit", "style": { "navigationBarTitleText": "我想吃" } },
     { "path": "pages/dish/detail", "style": { "navigationBarTitleText": "菜谱详情" } },
     { "path": "pages/dish/edit", "style": { "navigationBarTitleText": "编辑菜谱" } },
+    { "path": "pages/catalog/list", "style": { "navigationBarTitleText": "公共菜谱", "enablePullDownRefresh": true } },
+    { "path": "pages/catalog/detail", "style": { "navigationBarTitleText": "菜谱详情" } },
     { "path": "pages/cook/index", "style": { "navigationBarTitleText": "掌厨工作台", "enablePullDownRefresh": true } },
     { "path": "pages/login/index", "style": { "navigationBarTitleText": "登录" } },
     { "path": "pages/gathering/list", "style": { "navigationBarTitleText": "我的聚餐", "enablePullDownRefresh": true } },
